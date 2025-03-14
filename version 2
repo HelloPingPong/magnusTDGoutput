@@ -1,0 +1,235 @@
+ This version will allow users to generate data using FakerJS and display the results directly in the browser.
+
+### HTML (index.html)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPMorganChase Data Generation Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>JPMorganChase Data Generation Tool</h1>
+    </header>
+    <main>
+        <section id="data-generation">
+            <h2>Generate Data</h2>
+            <form id="generate-data-form">
+                <label for="row-count">Row Count:</label>
+                <input type="number" id="row-count" name="row-count" value="100" required>
+                <label for="output-format">Output Format:</label>
+                <select id="output-format" name="output-format" required>
+                    <option value="CSV">CSV</option>
+                    <option value="JSON">JSON</option>
+                    <option value="XML">XML</option>
+                </select>
+                <button type="submit">Generate Data</button>
+            </form>
+            <div id="data-result"></div>
+        </section>
+        <section id="template-management">
+            <h2>Template Management</h2>
+            <form id="create-template-form">
+                <label for="template-name">Template Name:</label>
+                <input type="text" id="template-name" name="template-name" required>
+                <div id="fields-container">
+                    <div class="field-row">
+                        <label for="field-name-0">Field Name:</label>
+                        <input type="text" id="field-name-0" name="field-name-0" required>
+                        <label for="data-type-0">Data Type:</label>
+                        <select id="data-type-0" name="data-type-0" required>
+                            <option value="name">Name</option>
+                            <option value="address">Address</option>
+                            <option value="phone">Phone</option>
+                            <option value="email">Email</option>
+                            <option value="date">Date</option>
+                            <option value="boolean">Boolean</option>
+                        </select>
+                        <button type="button" onclick="addField()">Add Field</button>
+                        <button type="button" onclick="deleteField(0)">Delete Field</button>
+                    </div>
+                </div>
+                <button type="submit">Create Template</button>
+            </form>
+            <div id="template-result"></div>
+        </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/faker@6.6.6/dist/faker.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### CSS (styles.css)
+```css
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #004D7F; /* JPMorganChase Blue */
+    color: white;
+    padding: 1em 0;
+    text-align: center;
+}
+
+main {
+    padding: 2em;
+}
+
+section {
+    margin-bottom: 2em;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-top: 1em;
+    color: #333;
+}
+
+input, select, textarea {
+    padding: 0.5em;
+    margin-top: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    margin-top: 1em;
+    padding: 0.5em;
+    background-color: #004D7F; /* JPMorganChase Blue */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #006699; /* Darker shade of JPMorganChase Blue */
+}
+
+#data-result, #template-result {
+    margin-top: 1em;
+    padding: 1em;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.field-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1em;
+}
+
+.field-row label {
+    margin-right: 0.5em;
+    color: #333;
+}
+
+.field-row input, .field-row select {
+    margin-right: 1em;
+}
+
+.field-row button {
+    margin-left: 0.5em;
+}
+```
+
+### JavaScript (script.js)
+```javascript
+let fieldCount = 1;
+
+function addField() {
+    const fieldsContainer = document.getElementById('fields-container');
+    const newFieldRow = document.createElement('div');
+    newFieldRow.className = 'field-row';
+    newFieldRow.innerHTML = `
+        <label for="field-name-${fieldCount}">Field Name:</label>
+        <input type="text" id="field-name-${fieldCount}" name="field-name-${fieldCount}" required>
+        <label for="data-type-${fieldCount}">Data Type:</label>
+        <select id="data-type-${fieldCount}" name="data-type-${fieldCount}" required>
+            <option value="name">Name</option>
+            <option value="address">Address</option>
+            <option value="phone">Phone</option>
+            <option value="email">Email</option>
+            <option value="date">Date</option>
+            <option value="boolean">Boolean</option>
+        </select>
+        <button type="button" onclick="addField()">Add Field</button>
+        <button type="button" onclick="deleteField(${fieldCount})">Delete Field</button>
+    `;
+    fieldsContainer.appendChild(newFieldRow);
+    fieldCount++;
+}
+
+function deleteField(index) {
+    const fieldsContainer = document.getElementById('fields-container');
+    fieldsContainer.removeChild(fieldsContainer.children[index]);
+    // Reorder fields after deletion
+    const fieldRows = Array.from(fieldsContainer.children);
+    fieldRows.forEach((row, idx) => {
+        row.querySelector(`[id^='field-name-']`).id = `field-name-${idx}`;
+        row.querySelector(`[id^='field-name-']`).name = `field-name-${idx}`;
+        row.querySelector(`[id^='data-type-']`).id = `data-type-${idx}`;
+        row.querySelector(`[id^='data-type-']`).name = `data-type-${idx}`;
+        row.querySelector(`[onclick*='deleteField']`).onclick = `deleteField(${idx})`;
+    });
+}
+
+function generateData() {
+    const rowCount = parseInt(document.getElementById('row-count').value);
+    const outputFormat = document.getElementById('output-format').value;
+    const fields = [];
+    for (let i = 0; i < fieldCount; i++) {
+        const fieldName = document.getElementById(`field-name-${i}`).value;
+        const dataType = document.getElementById(`data-type-${i}`).value;
+        fields.push({ name: fieldName, type: dataType });
+    }
+
+    const data = [];
+    for (let i = 0; i < rowCount; i++) {
+        const rowData = {};
+        fields.forEach(field => {
+            switch (field.type) {
+                case 'name':
+                    rowData[field.name] = faker.name.firstName() + ' ' + faker.name.lastName();
+                    break;
+                case 'address':
+                    rowData[field.name] = faker.address.streetAddress();
+                    break;
+                case 'phone':
+                    rowData[field.name] = faker.phone.phoneNumber();
+                    break;
+                case 'email':
+                    rowData[field.name] = faker.internet.email();
+                    break;
+                case 'date':
+                    rowData[field.name] = faker.date.past();
+                    break;
+                case 'boolean':
+                    rowData[field.name] = faker.datatype.boolean();
+                    break;
+                default:
+                    rowData[field.name] = '';
+            }
+        });
+        data.push(rowData);
+    }
+
+    let result;
+    switch (outputFormat) {
+        case 'CSV':
+            result = convertToCSV(data);
+            break;
+        case
