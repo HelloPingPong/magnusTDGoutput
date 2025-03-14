@@ -1,15 +1,95 @@
 
-					<!DOCTYPE html>
-                        <html lang="en">
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-							<style>
-								body {
-									background-color: white; /* Ensure the iframe has a white background */
-								}
 
-								body {
+### HTML (index.html)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Data Generation Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Test Data Generation Tool</h1>
+    </header>
+    <main>
+        <section id="data-generation">
+            <h2>Generate Data</h2>
+            <form id="generate-data-form">
+                <label for="template-ids">Template IDs (comma-separated):</label>
+                <input type="text" id="template-ids" name="template-ids" required>
+                <label for="row-count">Row Count:</label>
+                <input type="number" id="row-count" name="row-count" value="100" required>
+                <label for="output-format">Output Format:</label>
+                <select id="output-format" name="output-format" required>
+                    <option value="CSV">CSV</option>
+                    <option value="JSON">JSON</option>
+                    <option value="XML">XML</option>
+                </select>
+                <button type="submit">Generate Data</button>
+            </form>
+            <div id="data-result"></div>
+        </section>
+        <section id="schedule-management">
+            <h2>Schedule Management</h2>
+            <form id="create-schedule-form">
+                <label for="schedule-name">Schedule Name:</label>
+                <input type="text" id="schedule-name" name="schedule-name" required>
+                <label for="template-id">Template ID:</label>
+                <input type="number" id="template-id" name="template-id" required>
+                <label for="status">Status:</label>
+                <select id="status" name="status" required>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="PAUSED">PAUSED</option>
+                </select>
+                <button type="submit">Create Schedule</button>
+            </form>
+            <div id="schedule-result"></div>
+        </section>
+        <section id="template-management">
+            <h2>Template Management</h2>
+            <form id="create-template-form">
+                <label for="template-name">Template Name:</label>
+                <input type="text" id="template-name" name="template-name" required>
+                <div id="fields-container">
+                    <div class="field-row">
+                        <label for="field-name-0">Field Name:</label>
+                        <input type="text" id="field-name-0" name="field-name-0" required>
+                        <label for="data-type-0">Data Type:</label>
+                        <select id="data-type-0" name="data-type-0" required>
+                            <option value="string">String</option>
+                            <option value="integer">Integer</option>
+                            <option value="boolean">Boolean</option>
+                            <option value="date">Date</option>
+                        </select>
+                        <label for="constraints-0">Constraints:</label>
+                        <input type="text" id="constraints-0" name="constraints-0">
+                        <button type="button" onclick="addField()">Add Field</button>
+                        <button type="button" onclick="deleteField(0)">Delete Field</button>
+                    </div>
+                </div>
+                <button type="submit">Create Template</button>
+            </form>
+            <div id="template-result"></div>
+        </section>
+        <section id="existing-templates">
+            <h2>Existing Templates</h2>
+            <select id="template-select" onchange="loadTemplateDetails()">
+                <option value="">Select a template</option>
+            </select>
+            <div id="template-details"></div>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### CSS (styles.css)
+```css
+body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
@@ -88,98 +168,11 @@ button:hover {
 .field-row button {
     margin-left: 0.5em;
 }
+```
 
-
-							</style>
-                        </head>
-                        <body>
-                            
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JPMorganChase Data Generation Tool</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <header>
-        <h1>JPMorganChase Data Generation Tool</h1>
-    </header>
-    <main>
-        <section id="data-generation">
-            <h2>Generate Data</h2>
-            <form id="generate-data-form">
-                <label for="template-ids">Template IDs (comma-separated):</label>
-                <input type="text" id="template-ids" name="template-ids" required>
-                <label for="row-count">Row Count:</label>
-                <input type="number" id="row-count" name="row-count" value="100" required>
-                <label for="output-format">Output Format:</label>
-                <select id="output-format" name="output-format" required>
-                    <option value="CSV">CSV</option>
-                    <option value="JSON">JSON</option>
-                    <option value="XML">XML</option>
-                </select>
-                <button type="submit">Generate Data</button>
-            </form>
-            <div id="data-result"></div>
-        </section>
-        <section id="schedule-management">
-            <h2>Schedule Management</h2>
-            <form id="create-schedule-form">
-                <label for="schedule-name">Schedule Name:</label>
-                <input type="text" id="schedule-name" name="schedule-name" required>
-                <label for="template-id">Template ID:</label>
-                <input type="number" id="template-id" name="template-id" required>
-                <label for="status">Status:</label>
-                <select id="status" name="status" required>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="PAUSED">PAUSED</option>
-                </select>
-                <button type="submit">Create Schedule</button>
-            </form>
-            <div id="schedule-result"></div>
-        </section>
-        <section id="template-management">
-            <h2>Template Management</h2>
-            <form id="create-template-form">
-                <label for="template-name">Template Name:</label>
-                <input type="text" id="template-name" name="template-name" required>
-                <div id="fields-container">
-                    <div class="field-row">
-                        <label for="field-name-0">Field Name:</label>
-                        <input type="text" id="field-name-0" name="field-name-0" required>
-                        <label for="data-type-0">Data Type:</label>
-                        <select id="data-type-0" name="data-type-0" required>
-                            <option value="string">String</option>
-                            <option value="integer">Integer</option>
-                            <option value="boolean">Boolean</option>
-                            <option value="date">Date</option>
-                        </select>
-                        <label for="constraints-0">Constraints:</label>
-                        <input type="text" id="constraints-0" name="constraints-0">
-                        <button type="button" onclick="addField()">Add Field</button>
-                        <button type="button" onclick="deleteField(0)">Delete Field</button>
-                    </div>
-                </div>
-                <button type="submit">Create Template</button>
-            </form>
-            <div id="template-result"></div>
-        </section>
-        <section id="existing-templates">
-            <h2>Existing Templates</h2>
-            <select id="template-select" onchange="loadTemplateDetails()">
-                <option value="">Select a template</option>
-            </select>
-            <div id="template-details"></div>
-        </section>
-    </main>
-    <script src="script.js"></script>
-</body>
-
-
-
-
-							<script>
-                            	let fieldCount = 1;
+### JavaScript (script.js)
+```javascript
+let fieldCount = 1;
 
 function addField() {
     const fieldsContainer = document.getElementById('fields-container');
@@ -365,9 +358,3 @@ document.getElementById('create-template-form').addEventListener('submit', async
 
 // Load templates on page load
 loadTemplates();
-
-
-							</script>
-                        </body>
-                        </html>
-                    
