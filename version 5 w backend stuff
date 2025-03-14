@@ -1,0 +1,642 @@
+Certainly! To make the template management more user-friendly, we can break down the fields into individual sections, each with a box for the field name, data type selection, and custom constraints. This will allow users to add multiple fields more intuitively.
+
+### Updated HTML (index.html)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Data Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Test Data Generator</h1>
+        </header>
+        <main>
+            <section class="template-section">
+                <h2>Template Management</h2>
+                <form id="templateForm">
+                    <label for="templateName">Template Name:</label>
+                    <input type="text" id="templateName" name="templateName" required>
+                    <br><br>
+                    <label for="numRows">Number of Rows:</label>
+                    <input type="number" id="numRows" name="numRows" required>
+                    <br><br>
+                    <div id="fieldsContainer">
+                        <div class="field-row">
+                            <label for="fieldName0">Field Name:</label>
+                            <input type="text" id="fieldName0" name="fieldName0" required>
+                            <label for="fieldType0">Data Type:</label>
+                            <select id="fieldType0" name="fieldType0" required>
+                                <option value="name">Name</option>
+                                <option value="email">Email</option>
+                                <option value="address">Address</option>
+                                <!-- Add more data types as needed -->
+                            </select>
+                            <label for="fieldConstraints0">Custom Constraints:</label>
+                            <input type="text" id="fieldConstraints0" name="fieldConstraints0">
+                            <button onclick="removeField(0)">Remove</button>
+                        </div>
+                    </div>
+                    <br>
+                    <button type="button" onclick="addField()">Add Field</button>
+                    <br><br>
+                    <button type="submit">Save Template</button>
+                </form>
+                <div id="templates"></div>
+            </section>
+            <section class="schedule-section">
+                <h2>Schedule Generation</h2>
+                <form id="scheduleForm">
+                    <label for="scheduleDate">Date:</label>
+                    <input type="datetime-local" id="scheduleDate" name="scheduleDate" required>
+                    <br><br>
+                    <label for="selectedTemplate">Template:</label>
+                    <select id="selectedTemplate" name="selectedTemplate" required>
+                        <!-- Templates will be populated here -->
+                    </select>
+                    <br><br>
+                    <button type="submit">Schedule Generation</button>
+                </form>
+            </section>
+            <section class="dashboard-section">
+                <h2>Dashboard</h2>
+                <div id="dashboard"></div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### Updated CSS (styles.css)
+```css
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    background-color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+header {
+    background-color: #007BFF;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+    width: 100%;
+}
+
+main {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    padding: 20px;
+}
+
+.template-section, .schedule-section, .dashboard-section {
+    width: 30%;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-bottom: 5px;
+    color: #555;
+}
+
+input, textarea, select {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 10px;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#fieldsContainer {
+    margin-bottom: 20px;
+}
+
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#templates, #dashboard {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.template, .schedule {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.template button, .schedule button {
+    background-color: #ff4d4d;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.template button:hover, .schedule button:hover {
+    background-color: #ff1a1a;
+}
+```
+
+### Updated JavaScript (script.js)
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+    loadTemplates();
+    loadScheduledGenerations();
+});
+
+let fieldCount = 1;
+
+function addField() {
+    const fieldsContainer = document.getElementById('fieldsContainer');
+    const fieldRow = document.createElement('div');
+    fieldRow.className = 'field-row';
+    fieldRow.innerHTML = `
+        <label for="fieldName${fieldCount}">Field Name:</label>
+        <input type="text" id="fieldName${fieldCount}" name="fieldName${fieldCount}" required>
+        <label for="fieldType${fieldCount}">Data Type:</label>
+        <select id="fieldType${fieldCount}" name="fieldType${fieldCount}" required>
+            <option value="name">Name</option>
+            <option value="email">Email</option>
+            <option value="address">Address</option>
+            <!-- Add more data types as needed -->
+        </select>
+        <label for="fieldConstraints${fieldCount}">Custom Constraints:</label>
+        <input type="text" id="fieldConstraints${fieldCount}" name="fieldConstraints${fieldCount}">
+        <button onclick="removeField(${fieldCount})">Remove</button>
+    `;
+    fieldsContainer.appendChild(fieldRow);
+    fieldCount++;
+}
+
+function removeField(index) {
+    const fieldRow = document.querySelector(`.field-row:nth-child(${index + 1})`);
+    if (fieldRow) {
+        fieldRow.remove();
+    }
+}
+
+document.getElementById('templateForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const templateName = document.getElementById('templateName').value;
+    const numRows = document.getElementById('numRows').value;
+    const fields = [];
+
+    for (let i = 0; i < fieldCount; i++) {
+        const fieldName = document.getElementById(`fieldName${i}`).value;
+        const fieldType = document.getElementById(`fieldType${i}`).value;
+        const fieldConstraints = document.getElementById(`fieldConstraints${i}`).value;
+        if (fieldName && fieldType) {
+            fields.push({ name: fieldName, type: fieldType, constraints: fieldConstraints });
+        }
+    }
+
+    fetch('/api/templates', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: templateName, numRows, fields })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        loadTemplates();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+});
+
+document.getElementById('scheduleForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const scheduleDate = document.getElementById('scheduleDate').value;
+    const selectedTemplate = document.getElementById('selectedTemplate').value;
+
+    fetch('/api/schedules', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ date: scheduleDate, templateId: selectedTemplate })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        loadScheduledGenerations();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+});
+
+function loadTemplates() {
+    fetch('/api/templates')
+        .then(response => response.json())
+        .then(data => {
+            const templatesDiv = document.getElementById('templates');
+            templatesDiv.innerHTML = '';
+            data.forEach(template => {
+                const templateElement = document.createElement('div');
+                templateElement.className = 'template';
+                templateElement.innerHTML = `
+                    <strong>${template.name}</strong> (${template.numRows} rows)
+                    <pre>${JSON.stringify(template.fields, null, 2)}</pre>
+                    <button onclick="deleteTemplate('${template.id}')">Delete</button>
+                `;
+                templatesDiv.appendChild(templateElement);
+            });
+            populateTemplateSelect(data);
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
+
+function populateTemplateSelect(templates) {
+    const selectElement = document.getElementById('selectedTemplate');
+    selectElement.innerHTML = '';
+    templates.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = template.name;
+        selectElement.appendChild(option);
+    });
+}
+
+function deleteTemplate(templateId) {
+    fetch(`/api/templates/${templateId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        loadTemplates();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
+function loadScheduledGenerations() {
+    fetch('/api/schedules')
+        .then(response => response.json())
+        .then(data => {
+            const dashboardDiv = document.getElementById('dashboard');
+            dashboardDiv.innerHTML = '';
+            data.forEach(schedule => {
+                const scheduleElement = document.createElement('div');
+                scheduleElement.className = 'schedule';
+                scheduleElement.innerHTML = `
+                    <strong>${schedule.date}</strong> - ${schedule.templateName}
+                    <button onclick="cancelSchedule('${schedule.id}')">Cancel</button>
+                `;
+                dashboardDiv.appendChild(scheduleElement);
+            });
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
+
+function cancelSchedule(scheduleId) {
+    fetch(`/api/schedules/${scheduleId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        loadScheduledGenerations();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+```
+
+### Backend (Java + Spring Boot)
+
+#### Maven Dependencies (pom.xml)
+Add the following dependencies to your `pom.xml`:
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+</dependencies>
+```
+
+#### Entity Classes
+
+**Template.java**
+```java
+package com.example.testdatagenerator.model;
+
+import javax.persistence.*;
+import java.util.List;
+
+@Entity
+public class Template {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private int numRows;
+    @ElementCollection
+    @CollectionTable(name = "template_fields", joinColumns = @JoinColumn(name = "template_id"))
+    @AttributeOverride(name = "name", column = @Column(name = "field_name"))
+    @AttributeOverride(name = "type", column = @Column(name = "field_type"))
+    @AttributeOverride(name = "constraints", column = @Column(name = "field_constraints"))
+    private List<Field> fields;
+
+    // Getters and Setters
+}
+```
+
+**Field.java**
+```java
+package com.example.testdatagenerator.model;
+
+import javax.persistence.*;
+
+@Embeddable
+public class Field {
+    private String name;
+    private String type;
+    private String constraints;
+
+    // Getters and Setters
+}
+```
+
+**Schedule.java**
+```java
+package com.example.testdatagenerator.model;
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class Schedule {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private LocalDateTime date;
+    @ManyToOne
+    @JoinColumn(name = "template_id")
+    private Template template;
+
+    // Getters and Setters
+}
+```
+
+#### Repositories
+
+**TemplateRepository.java**
+```java
+package com.example.testdatagenerator.repository;
+
+import com.example.testdatagenerator.model.Template;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface TemplateRepository extends JpaRepository<Template, Long> {
+}
+```
+
+**ScheduleRepository.java**
+```java
+package com.example.testdatagenerator.repository;
+
+import com.example.testdatagenerator.model.Schedule;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
+}
+```
+
+#### Services
+
+**TemplateService.java**
+```java
+package com.example.testdatagenerator.service;
+
+import com.example.testdatagenerator.model.Field;
+import com.example.testdatagenerator.model.Template;
+import com.example.testdatagenerator.repository.TemplateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class TemplateService {
+    @Autowired
+    private TemplateRepository templateRepository;
+
+    public List<Template> getAllTemplates() {
+        return templateRepository.findAll();
+    }
+
+    public Template saveTemplate(Template template) {
+        return templateRepository.save(template);
+    }
+
+    public void deleteTemplate(Long id) {
+        templateRepository.deleteById(id);
+    }
+}
+```
+
+**ScheduleService.java**
+```java
+package com.example.testdatagenerator.service;
+
+import com.example.testdatagenerator.model.Schedule;
+import com.example.testdatagenerator.model.Template;
+import com.example.testdatagenerator.repository.ScheduleRepository;
+import com.example.testdatagenerator.repository.TemplateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class ScheduleService {
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+
+    @Autowired
+    private TemplateRepository templateRepository;
+
+    public List<Schedule> getAllSchedules() {
+        return scheduleRepository.findAll();
+    }
+
+    public Schedule saveSchedule(Schedule schedule) {
+        return scheduleRepository.save(schedule);
+    }
+
+    public void deleteSchedule(Long id) {
+        scheduleRepository.deleteById(id);
+    }
+}
+```
+
+#### Controllers
+
+**TemplateController.java**
+```java
+package com.example.testdatagenerator.controller;
+
+import com.example.testdatagenerator.model.Field;
+import com.example.testdatagenerator.model.Template;
+import com.example.testdatagenerator.service.TemplateService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/templates")
+public class TemplateController {
+    @Autowired
+    private TemplateService templateService;
+
+    @GetMapping
+    public List<Template> getAllTemplates() {
+        return templateService.getAllTemplates();
+    }
+
+    @PostMapping
+    public Template saveTemplate(@RequestBody Template template) {
+        return templateService.saveTemplate(template);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteTemplate(@PathVariable Long id) {
+        templateService.deleteTemplate(id);
+    }
+}
+```
+
+**ScheduleController.java**
+```java
+package com.example.testdatagenerator.controller;
+
+import com.example.testdatagenerator.model.Schedule;
+import com.example.testdatagenerator.model.Template;
+import com.example.testdatagenerator.service.ScheduleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/schedules")
+public class ScheduleController {
+    @Autowired
+    private ScheduleService scheduleService;
+
+    @GetMapping
+    public List<Schedule> getAllSchedules() {
+        return scheduleService.getAllSchedules();
+    }
+
+    @PostMapping
+    public Schedule saveSchedule(@RequestBody Schedule schedule) {
+        return scheduleService.saveSchedule(schedule);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteSchedule(@PathVariable Long id) {
+        scheduleService.deleteSchedule(id);
+    }
+}
+```
+
+### Running the Application
+1. **Frontend**: Place the HTML, CSS, and JavaScript files in a web server or use a local server like `http-server`.
+2. **Backend**: Run the Spring Boot application using `mvn spring-boot:run`.
+
+This setup provides a more user-friendly template management system with individual sections for each field, making it easier to manage and customize the data generation process.
