@@ -1,0 +1,332 @@
+Certainly! Let's clean up the UI to make it more professional and user-friendly. We'll focus on improving the layout, adding more spacing, and ensuring the design is consistent with a corporate look.
+
+### Step 1: Update HTML
+
+Add some additional structure and improve the form layout:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockaroo Clone</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mockaroo Clone</h1>
+        </header>
+        <main>
+            <form id="dataForm">
+                <div class="form-group">
+                    <label for="rowCount">Number of Rows:</label>
+                    <input type="number" id="rowCount" min="1" value="10" required>
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="addCustomField()">Add Field</button>
+                </div>
+                <div id="customFieldsContainer"></div>
+                <button type="submit">Generate Data</button>
+            </form>
+            <div id="dataContainer"></div>
+            <div class="download-buttons">
+                <button onclick="downloadCSV()">Download as CSV</button>
+                <button onclick="downloadXML()">Download as XML</button>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/faker@5.5.3/dist/faker.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### Step 2: Update CSS
+
+Improve the styling to make the UI more professional and clean:
+
+```css
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    color: #007BFF;
+    font-size: 2.5em;
+    margin: 0;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+label {
+    margin-top: 10px;
+    color: #555;
+    font-size: 1.2em;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#customFieldsContainer {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.field {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.field input, .field select {
+    margin-right: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.field button {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.field button:hover {
+    background-color: #c82333;
+}
+
+#dataContainer {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 100%;
+}
+
+.row {
+    margin-bottom: 10px;
+}
+
+.row p {
+    margin: 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.download-buttons {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.download-buttons button {
+    padding: 10px 20px;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.download-buttons button:hover {
+    background-color: #0056b3;
+}
+```
+
+### Step 3: Update JavaScript
+
+The JavaScript remains the same as before, but here it is for reference:
+
+```javascript
+document.getElementById('dataForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const rowCount = document.getElementById('rowCount').value;
+    const customFields = getCustomFields();
+    generateData(rowCount, customFields);
+});
+
+function addCustomField() {
+    const container = document.getElementById('customFieldsContainer');
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'field';
+    fieldDiv.innerHTML = `
+        <input type="text" placeholder="Field Name" required>
+        <select required>
+            <option value="name">Name</option>
+            <option value="email">Email</option>
+            <option value="address">Address</option>
+            <option value="phone">Phone</option>
+            <option value="company">Company</option>
+            <option value="date">Date</option>
+            <option value="color">Color</option>
+            <option value="uuid">UUID</option>
+        </select>
+        <button type="button" onclick="removeField(this)">Remove</button>
+    `;
+    container.appendChild(fieldDiv);
+}
+
+function removeField(button) {
+    button.parentNode.remove();
+}
+
+function getCustomFields() {
+    const fields = [];
+    const fieldDivs = document.querySelectorAll('#customFieldsContainer .field');
+    fieldDivs.forEach(div => {
+        const fieldName = div.querySelector('input').value;
+        const fieldType = div.querySelector('select').value;
+        if (fieldName && fieldType) {
+            fields.push({ name: fieldName, type: fieldType });
+        }
+    });
+    return fields;
+}
+
+function generateData(rowCount, customFields) {
+    const dataContainer = document.getElementById('dataContainer');
+    dataContainer.innerHTML = '';
+
+    for (let i = 0; i < rowCount; i++) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = '<hr>';
+        customFields.forEach(field => {
+            let value;
+            switch (field.type) {
+                case 'name':
+                    value = `${faker.name.firstName()} ${faker.name.lastName()}`;
+                    break;
+                case 'email':
+                    value = faker.internet.email();
+                    break;
+                case 'address':
+                    value = `${faker.address.streetAddress()}, ${faker.address.city()}, ${faker.address.state()}, ${faker.address.zipCode()}`;
+                    break;
+                case 'phone':
+                    value = faker.phone.phoneNumber();
+                    break;
+                case 'company':
+                    value = faker.company.companyName();
+                    break;
+                case 'date':
+                    value = faker.date.past().toISOString().split('T')[0];
+                    break;
+                case 'color':
+                    value = faker.commerce.color();
+                    break;
+                case 'uuid':
+                    value = faker.datatype.uuid();
+                    break;
+                default:
+                    value = '';
+            }
+            row.innerHTML += `<p>${field.name}: ${value}</p>`;
+        });
+        dataContainer.appendChild(row);
+    }
+}
+
+function downloadCSV() {
+    const rows = document.querySelectorAll('#dataContainer .row');
+    const csvContent = [['Field Name', 'Value']].map(row => row.map(cell => cell.textContent.split(': ')[1]).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'data.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function downloadXML() {
+    const rows = document.querySelectorAll('#dataContainer .row');
+    const xmlContent = `<data>\n`;
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('p');
+        cells.forEach(cell => {
+            const [fieldName, value] = cell.textContent.split(': ');
+            xmlContent += `  <${fieldName.toLowerCase().replace(/\s+/g, '_')}>${value}</${fieldName.toLowerCase().replace(/\s+/g, '_')}>\n`;
+        });
+    });
+    xmlContent += '</data>';
+    const blob = new Blob([xmlContent], { type: 'application/xml;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'data.xml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+```
+
+### Explanation
+
+1. **HTML**: Added some additional structure and improved the form layout.
+2. **CSS**:
+   - Improved the layout to be more centered and organized.
+   - Added more spacing and padding to enhance readability and usability.
+   - Ensured the design is consistent with a corporate look.
+3. **JavaScript**: Remained the same, handling the addition and removal of custom fields and generating data based on user input.
+
+This should give your application a cleaner and more professional UI, making it easier for users to interact with and understand.
