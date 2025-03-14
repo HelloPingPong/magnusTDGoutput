@@ -1,0 +1,340 @@
+Certainly! To add the ability to select the data type for each dynamic field, we'll modify the HTML, CSS, and JavaScript. We'll also update the backend to handle these new constraints.
+
+### Updated HTML (index.html)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Data Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Test Data Generator</h1>
+        <div class="constraints">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" placeholder="Enter first name">
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" placeholder="Enter last name">
+            <label for="emailDomain">Email Domain:</label>
+            <input type="text" id="emailDomain" placeholder="e.g., example.com">
+            <label for="phonePrefix">Phone Prefix:</label>
+            <input type="text" id="phonePrefix" placeholder="e.g., +1">
+            <button id="addField">Add Field</button>
+            <div id="dynamicFields"></div>
+        </div>
+        <button id="generateData">Generate Data</button>
+        <div id="output"></div>
+
+        <h2>Batch Generation</h2>
+        <div class="batch-constraints">
+            <label for="batchSize">Batch Size:</label>
+            <input type="number" id="batchSize" min="1" value="10">
+        </div>
+        <button id="generateBatchData">Generate Batch Data</button>
+        <div id="batchOutput"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### CSS (styles.css)
+```css
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+h1, h2 {
+    margin-bottom: 20px;
+}
+
+.constraints, .batch-constraints {
+    margin-bottom: 20px;
+}
+
+.constraints label, .batch-constraints label {
+    display: block;
+    margin-top: 10px;
+}
+
+.constraints input, .batch-constraints input {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.dynamic-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.dynamic-field label {
+    margin-right: 10px;
+}
+
+.dynamic-field input {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.dynamic-field select {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #007BFF;
+    color: white;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#output, #batchOutput {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #333;
+}
+```
+
+### JavaScript (script.js)
+```javascript
+document.getElementById('addField').addEventListener('click', function() {
+    const dynamicFieldsContainer = document.getElementById('dynamicFields');
+    const fieldContainer = document.createElement('div');
+    fieldContainer.className = 'dynamic-field';
+
+    const label = document.createElement('label');
+    label.textContent = 'Field Label:';
+    fieldContainer.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Enter field label';
+    fieldContainer.appendChild(input);
+
+    const select = document.createElement('select');
+    select.innerHTML = `
+        <option value="text">Text</option>
+        <option value="number">Number</option>
+        <option value="email">Email</option>
+        <option value="phone">Phone</option>
+    `;
+    fieldContainer.appendChild(select);
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = 'Remove';
+    removeButton.addEventListener('click', function() {
+        fieldContainer.remove();
+    });
+    fieldContainer.appendChild(removeButton);
+
+    dynamicFieldsContainer.appendChild(fieldContainer);
+});
+
+document.getElementById('generateData').addEventListener('click', function() {
+    const firstName = document.getElementById('firstName').value || '';
+    const lastName = document.getElementById('lastName').value || '';
+    const emailDomain = document.getElementById('emailDomain').value || 'example.com';
+    const phonePrefix = document.getElementById('phonePrefix').value || '+1';
+    const dynamicFields = Array.from(document.querySelectorAll('.dynamic-field')).map(field => ({
+        label: field.querySelector('input').value,
+        type: field.querySelector('select').value
+    }));
+
+    fetch('/api/generate-data', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            firstName,
+            lastName,
+            emailDomain,
+            phonePrefix,
+            dynamicFields
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <p><strong>Name:</strong> ${data.name}</p>
+            <p><strong>Email:</strong> ${data.email}</p>
+            <p><strong>Phone:</strong> ${data.phone}</p>
+            ${data.dynamicFields.map(field => `<p><strong>${field.label}:</strong> ${field.value}</p>`).join('')}
+        `;
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+document.getElementById('generateBatchData').addEventListener('click', function() {
+    const firstName = document.getElementById('firstName').value || '';
+    const lastName = document.getElementById('lastName').value || '';
+    const emailDomain = document.getElementById('emailDomain').value || 'example.com';
+    const phonePrefix = document.getElementById('phonePrefix').value || '+1';
+    const batchSize = parseInt(document.getElementById('batchSize').value, 10);
+    const dynamicFields = Array.from(document.querySelectorAll('.dynamic-field')).map(field => ({
+        label: field.querySelector('input').value,
+        type: field.querySelector('select').value
+    }));
+
+    fetch(`/api/generate-batch?batchSize=${batchSize}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            firstName,
+            lastName,
+            emailDomain,
+            phonePrefix,
+            dynamicFields
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const batchOutput = document.getElementById('batchOutput');
+        batchOutput.innerHTML = data.map((item, index) => `
+            <div key="item-${index}">
+                <p><strong>Name:</strong> ${item.name}</p>
+                <p><strong>Email:</strong> ${item.email}</p>
+                <p><strong>Phone:</strong> ${item.phone}</p>
+                ${item.dynamicFields.map(field => `<p><strong>${field.label}:</strong> ${field.value}</p>`).join('')}
+            </div>
+        `).join('');
+    })
+    .catch(error => console.error('Error:', error));
+});
+```
+
+### Backend (Node.js + Express)
+Update the backend to handle the new dynamic fields and their types:
+
+#### Create the Server (server.js)
+```javascript
+const express = require('express');
+const app = express();
+const port = 3000;
+
+app.use(express.json());
+
+app.post('/api/generate-data', (req, res) => {
+    const { firstName, lastName, emailDomain, phonePrefix, dynamicFields } = req.body;
+
+    const name = generateName(firstName, lastName);
+    const email = generateEmail(name, emailDomain);
+    const phone = generatePhone(phonePrefix);
+    const dynamicValues = generateDynamicValues(dynamicFields);
+
+    res.json({
+        name,
+        email,
+        phone,
+        dynamicFields: dynamicValues
+    });
+});
+
+app.post('/api/generate-batch', (req, res) => {
+    const { firstName, lastName, emailDomain, phonePrefix, dynamicFields } = req.body;
+    const batchSize = parseInt(req.query.batchSize, 10);
+
+    const batchData = [];
+    for (let i = 0; i < batchSize; i++) {
+        const name = generateName(firstName, lastName);
+        const email = generateEmail(name, emailDomain);
+        const phone = generatePhone(phonePrefix);
+        const dynamicValues = generateDynamicValues(dynamicFields);
+        batchData.push({ name, email, phone, dynamicFields: dynamicValues });
+    }
+
+    res.json(batchData);
+});
+
+function generateName(firstName, lastName) {
+    const firstNames = ['John', 'Jane', 'Alice', 'Bob', 'Charlie'];
+    const lastNames = ['Doe', 'Smith', 'Johnson', 'Williams', 'Brown'];
+    return `${firstName || firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastName || lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+}
+
+function generateEmail(name, emailDomain) {
+    const [firstName, lastName] = name.split(' ');
+    return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${emailDomain}`;
+}
+
+function generatePhone(phonePrefix) {
+    return `${phonePrefix}-${Math.floor(Math.random() * 9000000000) + 1000000000}`;
+}
+
+function generateDynamicValues(dynamicFields) {
+    return dynamicFields.map(field => ({
+        label: field.label,
+        value: generateValueByType(field.type)
+    }));
+}
+
+function generateValueByType(type) {
+    switch (type) {
+        case 'text':
+            return `Text Value`;
+        case 'number':
+            return Math.floor(Math.random() * 1000);
+        case 'email':
+            return `user@example.com`;
+        case 'phone':
+            return `+1-1234567890`;
+        default:
+            return `Unknown Value`;
+    }
+}
+
+app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+});
+```
+
+### Running the Application
+1. Start the backend server:
+   ```sh
+   node server.js
+   ```
+2. Open the HTML file in a web browser to see the application in action.
+
+### Explanation
+- **HTML**: Added a dropdown menu to select the data type for each dynamic field.
+- **CSS**: Styled the dropdown menu.
+- **JavaScript**: Updated the code to handle the new data type selection and include it in the request to the backend.
+- **Backend**: Updated the server to handle the new data type and generate values accordingly.
+
+This setup allows users to dynamically add fields with specified data types and generate data based on these constraints.
