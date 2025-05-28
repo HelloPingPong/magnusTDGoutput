@@ -1,0 +1,472 @@
+Excellent idea! Adding schema-level formatting rules would provide consistency across all generated data. Here's how I'd recommend implementing this:
+
+## 1. Schema-Level Formatting Model
+
+### Enhanced Schema Definition Entity
+```java
+// src/main/java/com/example/datagenerator/model/SchemaDefinition.java
+@Entity
+@Data
+@NoArgsConstructor
+public class SchemaDefinition {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String name;
+    
+    @OneToMany(mappedBy = "schemaDefinition", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("fieldOrder ASC")
+    private List<FieldDefinition> fields = new ArrayList<>();
+    
+    // NEW: Schema-level formatting rules
+    @Column(columnDefinition = "TEXT")
+    private String schemaFormattingRules; // JSON string
+    
+    private LocalDateTime createdAt = LocalDateTime.now();
+    
+    // ... existing methods
+}
+```
+
+### Schema Formatting Rules Classes
+```java
+// src/main/java/com/example/datagenerator/formatting/schema/
+├── SchemaFormattingRules.java
+├── CategoryFormattingRule.java
+├── TypeFormattingRule.java
+├── GlobalFormattingRule.java
+└── FormattingRuleSet.java
+```
+
+```java
+// src/main/java/com/example/datagenerator/formatting/schema/SchemaFormattingRules.java
+@Data
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class SchemaFormattingRules {
+    private GlobalFormattingRule globalRules;
+    private Map<String, CategoryFormattingRule> categoryRules; // e.g., "Name", "Address"
+    private Map<String, TypeFormattingRule> typeRules; // e.g., "Name.firstName"
+    private List<ConditionalFormattingRule> conditionalRules;
+    
+    public SchemaFormattingRules() {
+        this.categoryRules = new HashMap<>();
+        this.typeRules = new HashMap<>();
+        this.conditionalRules = new ArrayList<>();
+    }
+}
+
+// src/main/java/com/example/datagenerator/formatting/schema/GlobalFormattingRule.java
+@Data
+public class GlobalFormattingRule {
+    private CaseTransform defaultCase;
+    private String defaultPrefix;
+    private String defaultSuffix;
+    private Integer defaultMaxLength;
+    private CharacterSet allowedCharacters;
+    private String dateFormat; // Applied to all date fields
+    private String numberFormat; // Applied to all number fields
+}
+
+// src/main/java/com/example/datagenerator/formatting/schema/CategoryFormattingRule.java
+@Data
+public class CategoryFormattingRule {
+    private String category; // e.g., "Name", "Address", "Internet"
+    private FieldFormattingOptions formatting;
+    private Boolean overrideFieldRules = false; // Whether to override individual field rules
+}
+
+// src/main/java/com/example/datagenerator/formatting/schema/ConditionalFormattingRule.java
+@Data
+public class ConditionalFormattingRule {
+    private String condition; // e.g., "fieldName.contains('email')"
+    private FieldFormattingOptions formatting;
+    private Integer priority = 0; // Higher priority wins
+}
+```
+
+## 2. Schema Formatting Service
+
+```java
+// src/main/java/com/example/datagenerator/service/SchemaFormattingService.java
+@Service
+@RequiredArgsConstructor
+public class SchemaFormattingService {
+    
+    private final ObjectMapper objectMapper;
+    
+    public SchemaFormattingRules parseSchemaRules(String rulesJson) {
+        if (rulesJson == null || rulesJson.trim().isEmpty()) {
+            return new SchemaFormattingRules();
+        }
+        
+        try {
+            return objectMapper.readValue(rulesJson, SchemaFormattingRules.class);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse schema formatting rules: {}", e.getMessage());
+            return new SchemaFormattingRules();
+        }
+    }
+    
+    public FieldFormattingOptions resolveFieldFormatting(
+            FieldDefinitionDto field, 
+            SchemaFormattingRules schemaRules,
+            FieldFormattingOptions fieldLevelRules) {
+        
+        // Build formatting in order of precedence (lowest to highest):
+        // 1. Global rules
+        // 2. Category rules  
+        // 3. Type-specific rules
+        // 4. Conditional rules
+        // 5. Field-level rules (highest precedence)
+        
+        FieldFormattingOptions resolved = new FieldFormattingOptions();
+        
+        // Apply global rules
+        if (schemaRules.getGlobalRules() != null) {
+            applyGlobalRules(resolved, schemaRules.getGlobalRules());
+        }
+        
+        // Apply category rules
+        String category = extractCategory(field.getDataType());
+        if (category != null && schemaRules.getCategoryRules().containsKey(category)) {
+            CategoryFormattingRule categoryRule = schemaRules.getCategoryRules().get(category);
+            if (!categoryRule.getOverrideFieldRules()) {
+                mergeFormatting(resolved, categoryRule.getFormatting());
+            }
+        }
+        
+        // Apply type-specific rules
+        if (schemaRules.getTypeRules().containsKey(field.getDataType())) {
+            TypeFormattingRule typeRule = schemaRules.getTypeRules().get(field.getDataType());
+            mergeFormatting(resolved, typeRule.getFormatting());
+        }
+        
+        // Apply conditional rules
+        applyConditionalRules(resolved, field, schemaRules.getConditionalRules());
+        
+        // Apply field-level rules (highest precedence)
+        if (fieldLevelRules != null) {
+            mergeFormatting(resolved, fieldLevelRules);
+        }
+        
+        return resolved;
+    }
+    
+    private void applyGlobalRules(FieldFormattingOptions target, GlobalFormattingRule global) {
+        if (global.getDefaultCase() != null && target.getCaseTransform() == null) {
+            target.setCaseTransform(global.getDefaultCase());
+        }
+        if (global.getDefaultPrefix() != null && target.getPrefix() == null) {
+            target.setPrefix(global.getDefaultPrefix());
+        }
+        // ... apply other global rules
+    }
+}
+```
+
+## 3. Enhanced Data Generation Service
+
+```java
+// src/main/java/com/example/datagenerator/service/EnhancedDataGenerationService.java
+@Service
+public class EnhancedDataGenerationService extends DataGenerationService {
+    
+    @Autowired
+    private SchemaFormattingService schemaFormattingService;
+    
+    @Autowired
+    private FieldFormatter fieldFormatter;
+    
+    // Override to include schema-level formatting
+    public String generateData(GenerationRequest request) throws Exception {
+        // Parse schema-level formatting rules if provided
+        SchemaFormattingRules schemaRules = parseSchemaRules(request.getSchemaFormattingRules());
+        
+        List<Map<String, Object>> data = generateRawDataWithSchemaFormatting(
+            request.getSchema(), 
+            request.getRowCount(), 
+            schemaRules
+        );
+        
+        return formatData(data, request.getFormat(), request.getSchema(), request.getTableName());
+    }
+    
+    private List<Map<String, Object>> generateRawDataWithSchemaFormatting(
+            List<FieldDefinitionDto> schema, 
+            int rowCount, 
+            SchemaFormattingRules schemaRules) {
+        
+        return IntStream.range(0, rowCount)
+                .mapToObj(i -> generateRowWithSchemaFormatting(schema, schemaRules))
+                .collect(Collectors.toList());
+    }
+    
+    private Map<String, Object> generateRowWithSchemaFormatting(
+            List<FieldDefinitionDto> schema, 
+            SchemaFormattingRules schemaRules) {
+        
+        Map<String, Object> row = new LinkedHashMap<>();
+        List<FieldDefinitionDto> orderedFields = resolveDependencyOrder(schema);
+        
+        for (FieldDefinitionDto field : orderedFields) {
+            try {
+                // Parse field-level options
+                EnhancedFieldOptions fieldOptions = parseEnhancedOptions(field.getOptions());
+                
+                // Resolve final formatting rules (schema + field level)
+                FieldFormattingOptions finalFormatting = schemaFormattingService.resolveFieldFormatting(
+                    field, schemaRules, fieldOptions.getFormatting()
+                );
+                
+                // Generate and format value
+                String value = generateAndFormatFieldValue(field, row, fieldOptions, finalFormatting);
+                row.put(field.getName(), value);
+                
+            } catch (Exception e) {
+                log.error("Error generating field '{}': {}", field.getName(), e.getMessage());
+                row.put(field.getName(), "[ERROR]");
+            }
+        }
+        
+        return row;
+    }
+}
+```
+
+## 4. Enhanced DTOs
+
+```java
+// src/main/java/com/example/datagenerator/dto/GenerationRequest.java
+@Data
+public class GenerationRequest {
+    private List<FieldDefinitionDto> schema;
+    private int rowCount;
+    private String format;
+    private String tableName;
+    private String schemaFormattingRules; // NEW: JSON string for schema-level rules
+}
+
+// src/main/java/com/example/datagenerator/dto/SchemaDefinitionDto.java
+@Data
+public class SchemaDefinitionDto {
+    private Long id;
+    private String name;
+    private List<FieldDefinitionDto> fields;
+    private String shareLink;
+    private SchemaFormattingRules formattingRules; // NEW: Parsed rules object
+}
+```
+
+## 5. Frontend Enhancements
+
+### Schema Formatting Rules Panel
+```javascript
+// frontend/components/schema-formatting-panel.js
+class SchemaFormattingPanel {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.rules = new SchemaFormattingRules();
+        this.init();
+    }
+    
+    init() {
+        this.container.innerHTML = `
+            <div class="schema-formatting-panel">
+                <h3>Schema Formatting Rules</h3>
+                
+                <div class="formatting-section">
+                    <h4>Global Rules (Applied to All Fields)</h4>
+                    <div class="rule-group">
+                        <label>Default Case:</label>
+                        <select id="globalCase">
+                            <option value="">No Change</option>
+                            <option value="UPPER">UPPERCASE</option>
+                            <option value="LOWER">lowercase</option>
+                            <option value="TITLE">Title Case</option>
+                        </select>
+                    </div>
+                    
+                    <div class="rule-group">
+                        <label>Global Prefix:</label>
+                        <input type="text" id="globalPrefix" placeholder="e.g., TEST_">
+                    </div>
+                    
+                    <div class="rule-group">
+                        <label>Global Suffix:</label>
+                        <input type="text" id="globalSuffix" placeholder="e.g., _2024">
+                    </div>
+                    
+                    <div class="rule-group">
+                        <label>Max Length (All Fields):</label>
+                        <input type="number" id="globalMaxLength" placeholder="e.g., 50">
+                    </div>
+                </div>
+                
+                <div class="formatting-section">
+                    <h4>Category-Specific Rules</h4>
+                    <div id="categoryRules">
+                        <!-- Dynamic category rules -->
+                    </div>
+                    <button onclick="addCategoryRule()">+ Add Category Rule</button>
+                </div>
+                
+                <div class="formatting-section">
+                    <h4>Conditional Rules</h4>
+                    <div id="conditionalRules">
+                        <!-- Dynamic conditional rules -->
+                    </div>
+                    <button onclick="addConditionalRule()">+ Add Conditional Rule</button>
+                </div>
+                
+                <div class="formatting-actions">
+                    <button onclick="previewSchemaFormatting()">Preview</button>
+                    <button onclick="resetSchemaFormatting()">Reset</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    addCategoryRule() {
+        const categoryRulesDiv = document.getElementById('categoryRules');
+        const ruleDiv = document.createElement('div');
+        ruleDiv.className = 'category-rule';
+        ruleDiv.innerHTML = `
+            <select class="category-select">
+                <option value="Name">Name</option>
+                <option value="Address">Address</option>
+                <option value="Internet">Internet</option>
+                <option value="Number">Number</option>
+                <option value="Date">Date</option>
+            </select>
+            <input type="text" placeholder="Prefix" class="category-prefix">
+            <input type="text" placeholder="Suffix" class="category-suffix">
+            <select class="category-case">
+                <option value="">No Change</option>
+                <option value="UPPER">UPPER</option>
+                <option value="LOWER">lower</option>
+            </select>
+            <button onclick="removeCategoryRule(this)">×</button>
+        `;
+        categoryRulesDiv.appendChild(ruleDiv);
+    }
+}
+```
+
+### Enhanced Schema Management
+```javascript
+// Update existing schema management to include formatting rules
+async function handleSaveSchema() {
+    const schemaName = schemaNameInput.value.trim();
+    const schemaFields = getSchemaFromDOM();
+    const formattingRules = getSchemaFormattingRules(); // NEW
+    
+    if (!schemaName) {
+        displayError("Please enter a name to save the schema.");
+        return;
+    }
+    
+    // ... validation ...
+    
+    try {
+        const requestBody = {
+            name: schemaName,
+            fields: schemaFields,
+            formattingRules: formattingRules // NEW
+        };
+        
+        const savedSchema = await apiFetch('/schemas', {
+            method: 'POST',
+            body: requestBody
+        });
+        
+        // ... success handling ...
+    } catch (error) {
+        displayError(`Failed to save schema: ${error.message}`);
+    }
+}
+
+function getSchemaFormattingRules() {
+    // Collect rules from the schema formatting panel
+    return {
+        globalRules: {
+            defaultCase: document.getElementById('globalCase').value || null,
+            defaultPrefix: document.getElementById('globalPrefix').value || null,
+            defaultSuffix: document.getElementById('globalSuffix').value || null,
+            defaultMaxLength: document.getElementById('globalMaxLength').value ? 
+                parseInt(document.getElementById('globalMaxLength').value) : null
+        },
+        categoryRules: getCategoryRules(),
+        conditionalRules: getConditionalRules()
+    };
+}
+```
+
+## 6. Updated HTML Structure
+
+```html
+<!-- frontend/index.html - Add schema formatting section -->
+<section class="schema-section">
+    <h2>Schema Definition</h2>
+    
+    <!-- Existing field definitions -->
+    <div id="schemaFieldsContainer">
+        <!-- Schema field rows added by JS -->
+    </div>
+    <button id="addFieldBtn" class="add-field-btn">+ Add Field</button>
+
+    <!-- NEW: Schema Formatting Rules -->
+    <div class="schema-formatting-section">
+        <h3>Schema-Level Formatting Rules</h3>
+        <button id="toggleFormattingRules" class="toggle-btn">Configure Formatting Rules</button>
+        <div id="schemaFormattingPanel" class="hidden">
+            <!-- Schema formatting panel will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Existing schema management -->
+    <div class="schema-management">
+        <!-- ... existing content ... -->
+    </div>
+</section>
+```
+
+## Usage Examples
+
+**Global Rules Example:**
+```json
+{
+  "globalRules": {
+    "defaultCase": "UPPER",
+    "defaultPrefix": "TEST_",
+    "defaultMaxLength": 50
+  }
+}
+```
+
+**Category Rules Example:**
+```json
+{
+  "categoryRules": {
+    "Name": {
+      "formatting": {
+        "caseTransform": "TITLE",
+        "fixedLength": {"length": 20}
+      }
+    },
+    "Internet": {
+      "formatting": {
+        "suffix": "@company.com"
+      },
+      "overrideFieldRules": true
+    }
+  }
+}
+```
+
+This approach provides:
+- **Consistent formatting** across entire schemas
+- **Hierarchical rule application** (global → category → field)
+- **Flexible conditional formatting** based on field properties
+- **Easy maintenance** of formatting standards
+- **Override capabilities** at any level​​​​​​​​​​​​​​​​
