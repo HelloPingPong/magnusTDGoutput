@@ -1,0 +1,135 @@
+This **builds directly on top** of the previous formatting changes - it's not independent. The schema-level formatting acts as a higher layer in the formatting hierarchy.
+
+## How They Work Together
+
+Here's the complete formatting stack from bottom to top:
+
+### Layer 1: Base Data Generation (Existing)
+```
+DataTypeGenerator → Raw generated value
+```
+
+### Layer 2: Field-Level Formatting (Previous Recommendation)
+```
+Raw value → FieldFormatter → Formatted field value
+```
+
+### Layer 3: Schema-Level Formatting (This Recommendation)
+```
+Schema rules + Field rules → Resolved formatting rules → Applied to field
+```
+
+## The Complete Flow
+
+```java
+// This builds on the previous EnhancedDataGenerationService
+@Service
+public class EnhancedDataGenerationService extends DataGenerationService {
+    
+    private String generateAndFormatFieldValue(
+            FieldDefinitionDto field, 
+            Map<String, Object> rowContext,
+            EnhancedFieldOptions fieldOptions,      // From previous recommendation
+            FieldFormattingOptions finalFormatting  // Resolved from schema + field rules
+    ) {
+        
+        // Step 1: Generate base value (existing generators)
+        DataTypeGenerator generator = getGenerator(fieldOptions.getBaseType() != null ? 
+            fieldOptions.getBaseType() : field.getDataType());
+            
+        String baseValue = generator.generate(faker, 
+            fieldOptions.getBaseOptions() != null ? fieldOptions.getBaseOptions().toString() : null,
+            rowContext); // Row context from previous recommendation
+        
+        // Step 2: Apply resolved formatting (combines schema + field rules)
+        return fieldFormatter.applyFormatting(baseValue, finalFormatting);
+        //     ↑ This FieldFormatter is from the previous recommendation
+    }
+}
+```
+
+## Dependencies Between Recommendations
+
+### Classes That Must Exist First (Previous Recommendation)
+- `FieldFormatter.java`
+- `FieldFormattingOptions.java`
+- `EnhancedFieldOptions.java`
+- `EnhancedDataGenerationService.java`
+- Enhanced `DataTypeGenerator` interface
+
+### Classes That Build On Them (This Recommendation)
+- `SchemaFormattingService.java` - uses `FieldFormattingOptions`
+- `SchemaFormattingRules.java` - contains `FieldFormattingOptions`
+- Enhanced `EnhancedDataGenerationService` - calls existing `FieldFormatter`
+
+## Complete Directory Structure (Combined)
+
+```
+src/main/java/com/example/datagenerator/
+├── formatting/
+│   ├── FieldFormatter.java                    # From previous recommendation
+│   ├── FieldFormattingOptions.java           # From previous recommendation
+│   ├── FixedLengthConfig.java                # From previous recommendation
+│   ├── PaddingConfig.java                    # From previous recommendation
+│   ├── schema/                               # NEW package for schema-level rules
+│   │   ├── SchemaFormattingRules.java        # Builds on FieldFormattingOptions
+│   │   ├── GlobalFormattingRule.java         # Uses formatting enums from previous
+│   │   ├── CategoryFormattingRule.java       # Contains FieldFormattingOptions
+│   │   └── ConditionalFormattingRule.java    # Contains FieldFormattingOptions
+│   └── enums/
+│       ├── TruncatePosition.java             # From previous recommendation
+│       ├── PaddingPosition.java              # From previous recommendation
+│       └── CaseTransform.java                # From previous recommendation
+├── service/
+│   ├── EnhancedDataGenerationService.java    # Enhanced from previous version
+│   └── SchemaFormattingService.java          # NEW - uses existing formatting classes
+└── dto/
+    ├── EnhancedFieldOptions.java             # From previous recommendation
+    └── SchemaDefinitionDto.java              # Enhanced to include schema rules
+```
+
+## Example of How Rules Combine
+
+```java
+// This method from SchemaFormattingService shows the hierarchy
+public FieldFormattingOptions resolveFieldFormatting(
+        FieldDefinitionDto field, 
+        SchemaFormattingRules schemaRules,      // NEW layer
+        FieldFormattingOptions fieldLevelRules  // From previous recommendation
+) {
+    
+    FieldFormattingOptions resolved = new FieldFormattingOptions(); // Previous class
+    
+    // 1. Apply global schema rules (NEW)
+    if (schemaRules.getGlobalRules() != null) {
+        applyGlobalRules(resolved, schemaRules.getGlobalRules());
+    }
+    
+    // 2. Apply category schema rules (NEW)
+    // ... 
+    
+    // 3. Apply field-level rules (PREVIOUS - highest precedence)
+    if (fieldLevelRules != null) {
+        mergeFormatting(resolved, fieldLevelRules); // Uses previous formatting logic
+    }
+    
+    return resolved; // This goes to the existing FieldFormatter
+}
+```
+
+## Implementation Order
+
+You should implement them in this order:
+
+1. **First**: All classes from the previous recommendation
+2. **Second**: Schema-level formatting classes (this recommendation)
+3. **Third**: Update the frontend to support both layers
+
+## Why This Layered Approach?
+
+- **Separation of Concerns**: Field formatting vs. schema formatting
+- **Flexibility**: Can use field-level formatting without schema rules
+- **Precedence**: Schema rules provide defaults, field rules provide overrides
+- **Reusability**: Same `FieldFormatter` handles both individual and schema-resolved rules
+
+The schema-level formatting essentially acts as a "rule resolver" that creates the final `FieldFormattingOptions` object, which then gets processed by the existing field formatting system.​​​​​​​​​​​​​​​​
