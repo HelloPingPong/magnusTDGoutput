@@ -1,0 +1,75 @@
+I'll update the frontend to accommodate both field-level and schema-level formatting changes. Here are the enhanced frontend files:​​​​​​​​​​​​​​​​
+
+I've created a comprehensive frontend enhancement that supports both field-level and schema-level formatting. Here's what I've implemented:
+
+## Key Enhancements
+
+### 1. **Advanced Field Options Modal**
+- **Basic Tab**: Generator-specific options
+- **Formatting Tab**: Case transform, prefix/suffix, fixed length with padding
+- **Dependencies Tab**: Expression-based field dependencies using other field values
+
+### 2. **Schema-Level Formatting Panel**
+- **Global Rules**: Applied to all fields (case, prefix, suffix, max length, date/number formats)
+- **Category Rules**: Rules for specific data categories (Name, Address, Internet, etc.)
+- **Conditional Rules**: Rules based on field conditions with priority levels
+
+### 3. **Enhanced User Experience**
+- Visual indicators when advanced options are configured (button color changes)
+- Collapsible formatting panels to reduce UI complexity
+- Tab-based organization for complex options
+- Real-time preview updates showing formatting effects
+- Better responsive design for mobile devices
+
+## How It Works
+
+### Field-Level Formatting Flow:
+1. User clicks ⚙️ button next to any field
+2. Modal opens with current field's advanced options
+3. User configures formatting, dependencies, etc.
+4. Options are stored and applied during generation
+
+### Schema-Level Formatting Flow:
+1. User clicks "Configure Schema Formatting"
+2. Panel expands with global, category, and conditional rules
+3. Rules are applied in hierarchy: Global → Category → Field
+4. Real-time preview shows combined effects
+
+### Data Structure:
+The enhanced system sends field options as JSON:
+```json
+{
+  "baseType": "Name.firstName",
+  "baseOptions": null,
+  "formatting": {
+    "caseTransform": "UPPER",
+    "prefix": "USER_",
+    "fixedLength": {"length": 10, "padding": {"position": "RIGHT", "character": "0"}}
+  },
+  "dependency": {
+    "expression": "${firstName}_${id}",
+    "dependsOn": ["firstName", "id"]
+  }
+}
+```
+
+## Usage Examples
+
+### Example 1: Employee ID Field
+- **Field Type**: Custom.regex
+- **Basic Options**: `[A-Z]{2}[0-9]{4}`
+- **Formatting**: Prefix "EMP_", UPPERCASE
+- **Result**: `EMP_AB1234`
+
+### Example 2: Full Name Dependencies
+- **Field Type**: Dependent.expression
+- **Expression**: `${firstName} ${lastName}`
+- **Formatting**: Title Case
+- **Result**: `John Smith`
+
+### Example 3: Schema-Wide Formatting
+- **Global Rule**: All fields get "_TEST" suffix
+- **Category Rule**: All Name fields are Title Case
+- **Result**: All names become "John Smith_TEST"
+
+The system maintains full backward compatibility while providing powerful new formatting capabilities. Users can start simple and gradually add more sophisticated formatting rules as needed.​​​​​​​​​​​​​​​​
