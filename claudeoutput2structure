@@ -1,0 +1,151 @@
+Based on the existing project structure, here's where each new class should be placed:
+
+## Backend Classes
+
+### 1. Enhanced Generator Interface
+```
+src/main/java/com/example/datagenerator/generator/DataTypeGenerator.java
+```
+*(This would modify the existing interface)*
+
+### 2. Field Formatting Classes
+```
+src/main/java/com/example/datagenerator/formatting/
+├── FieldFormatter.java
+├── FieldFormattingOptions.java
+├── FixedLengthConfig.java
+├── PaddingConfig.java
+└── enums/
+    ├── TruncatePosition.java
+    ├── PaddingPosition.java
+    └── CaseTransform.java
+```
+
+### 3. Dependent Field Generator
+```
+src/main/java/com/example/datagenerator/generator/impl/DependentFieldGenerator.java
+```
+
+### 4. Enhanced Options DTOs
+```
+src/main/java/com/example/datagenerator/dto/
+├── EnhancedFieldOptions.java
+├── DependencyConfig.java
+└── ValidationRule.java
+```
+
+### 5. Enhanced Data Generation Service
+```
+src/main/java/com/example/datagenerator/service/EnhancedDataGenerationService.java
+```
+
+### 6. Expression Evaluation System
+```
+src/main/java/com/example/datagenerator/expression/
+├── ExpressionEvaluator.java
+├── ExpressionParser.java
+├── DependencyResolver.java
+└── functions/
+    ├── ExpressionFunction.java
+    ├── RandomNumberFunction.java
+    ├── SubstringFunction.java
+    └── DateFormatFunction.java
+```
+
+### 7. Configuration Classes
+```
+src/main/java/com/example/datagenerator/config/
+└── FormattingConfiguration.java
+```
+
+## Complete Directory Structure
+
+Here's how the enhanced project structure would look:
+
+```
+src/main/java/com/example/datagenerator/
+├── config/
+│   ├── ApplicationConfiguration.java (existing)
+│   └── FormattingConfiguration.java (new)
+├── controller/
+│   └── ApiController.java (existing - may need updates)
+├── dto/
+│   ├── DataTypeInfo.java (existing)
+│   ├── FieldDefinitionDto.java (existing)
+│   ├── GenerationRequest.java (existing)
+│   ├── SchemaDefinitionDto.java (existing)
+│   ├── SchemaSummaryDto.java (existing)
+│   ├── EnhancedFieldOptions.java (new)
+│   ├── DependencyConfig.java (new)
+│   └── ValidationRule.java (new)
+├── expression/ (new package)
+│   ├── ExpressionEvaluator.java
+│   ├── ExpressionParser.java
+│   ├── DependencyResolver.java
+│   └── functions/
+│       ├── ExpressionFunction.java
+│       ├── RandomNumberFunction.java
+│       ├── SubstringFunction.java
+│       └── DateFormatFunction.java
+├── formatting/ (new package)
+│   ├── FieldFormatter.java
+│   ├── FieldFormattingOptions.java
+│   ├── FixedLengthConfig.java
+│   ├── PaddingConfig.java
+│   └── enums/
+│       ├── TruncatePosition.java
+│       ├── PaddingPosition.java
+│       └── CaseTransform.java
+├── generator/
+│   ├── DataTypeGenerator.java (existing - to be enhanced)
+│   └── impl/
+│       ├── FirstNameGenerator.java (existing)
+│       ├── LastNameGenerator.java (existing)
+│       ├── AddressGenerator.java (existing)
+│       ├── ZipCodeGenerator.java (existing)
+│       ├── CustomRegexGenerator.java (existing)
+│       ├── RandomStringGenerator.java (existing)
+│       ├── CustomBothifyGenerator.java (existing)
+│       ├── TrueFalseGenerator.java (existing)
+│       ├── RangeNumberGenerator.java (existing)
+│       └── DependentFieldGenerator.java (new)
+├── model/
+│   ├── SchemaDefinition.java (existing)
+│   └── FieldDefinition.java (existing - may need minor updates)
+├── repository/
+│   └── SchemaDefinitionRepository.java (existing)
+└── service/
+    ├── DataGenerationService.java (existing)
+    ├── SchemaService.java (existing)
+    └── EnhancedDataGenerationService.java (new)
+```
+
+## Frontend Structure (remains in frontend/ directory)
+
+```
+frontend/
+├── index.html (existing - needs updates)
+├── styles.css (existing - needs updates for modal/advanced options)
+├── script.js (existing - needs significant updates)
+└── components/ (new - optional for better organization)
+    ├── advanced-options-modal.js
+    ├── field-formatter.js
+    └── dependency-builder.js
+```
+
+## Key Notes:
+
+1. **New Packages**: The `formatting/` and `expression/` packages are entirely new and provide clear separation of concerns.
+
+2. **Existing Modifications**: Some existing classes will need updates:
+   - `DataTypeGenerator.java` - interface enhancement
+   - `DataGenerationService.java` - may become abstract or get enhanced
+   - `FieldDefinition.java` - might need a new column for enhanced options
+
+3. **Service Layer**: The `EnhancedDataGenerationService` can extend the existing service or replace it, depending on whether you want to maintain backward compatibility.
+
+4. **Configuration**: The new `FormattingConfiguration.java` would contain beans for formatting-related components and any necessary configuration.
+
+5. **Enums Package**: Small enums are placed in a subfolder to keep the main packages clean.
+
+This structure maintains the existing Spring Boot conventions while providing clear organization for the new functionality.​​​​​​​​​​​​​​​​
