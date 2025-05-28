@@ -1,0 +1,303 @@
+Based on the current architecture, I recommend implementing custom formatting capabilities through a multi-layered approach that extends the existing system while maintaining backward compatibility. Here's my recommended implementation strategy:
+
+## 1. Enhanced Generator Interface
+
+First, extend the `DataTypeGenerator` interface to support row context and formatting:
+
+```java
+public interface DataTypeGenerator {
+    String getKey();
+    String getName();
+    String getCategory();
+    
+    // Enhanced generate method with row context
+    String generate(Faker faker, String options, Map<String, Object> rowContext);
+    
+    // Backward compatibility
+    default String generate(Faker faker, String options) {
+        return generate(faker, options, Collections.emptyMap());
+    }
+    
+    // New methods for formatting support
+    default boolean supportsFormatting() { return false; }
+    default String applyFormatting(String value, String formatOptions) { return value; }
+}
+```
+
+## 2. Field Formatting System
+
+Create a new formatting layer that can be applied to any field:
+
+```java
+@Component
+public class FieldFormatter {
+    
+    public String applyFormatting(String value, FieldFormattingOptions options) {
+        if (options == null) return value;
+        
+        String result = value;
+        
+        // Fixed length formatting
+        if (options.getFixedLength() != null) {
+            result = applyFixedLength(result, options.getFixedLength(), options.getPadding());
+        }
+        
+        // Case transformation
+        if (options.getCaseTransform() != null) {
+            result = applyCaseTransform(result, options.getCaseTransform());
+        }
+        
+        // Custom prefix/suffix
+        result = applyPrefixSuffix(result, options.getPrefix(), options.getSuffix());
+        
+        return result;
+    }
+    
+    private String applyFixedLength(String value, FixedLengthConfig config, PaddingConfig padding) {
+        int targetLength = config.getLength();
+        
+        if (value.length() > targetLength) {
+            // Truncate
+            return config.getTruncateFrom() == TruncatePosition.START 
+                ? value.substring(value.length() - targetLength)
+                : value.substring(0, targetLength);
+        } else if (value.length() < targetLength) {
+            // Pad
+            char padChar = padding != null ? padding.getCharacter() : ' ';
+            String padString = String.valueOf(padChar).repeat(targetLength - value.length());
+            
+            return padding != null && padding.getPosition() == PaddingPosition.LEFT
+                ? padString + value
+                : value + padString;
+        }
+        
+        return value;
+    }
+}
+```
+
+## 3. Dependent Field Generators
+
+Create specialized generators for field dependencies:
+
+```java
+@Component
+public class DependentFieldGenerator implements DataTypeGenerator {
+    
+    @Override
+    public String getKey() {
+        return "Dependent.expression";
+    }
+    
+    @Override
+    public String generate(Faker faker, String options, Map<String, Object> rowContext) {
+        if (options == null || options.isEmpty()) {
+            throw new IllegalArgumentException("Dependent field requires expression in options");
+        }
+        
+        // Parse expression like: "${firstName}_${lastName}_${randomNumber(1000,9999)}"
+        return evaluateExpression(options, rowContext, faker);
+    }
+    
+    private String evaluateExpression(String expression, Map<String, Object> context, Faker faker) {
+        // Simple template engine - could be enhanced with SpEL or similar
+        String result = expression;
+        
+        // Replace field references: ${fieldName}
+        Pattern fieldPattern = Pattern.compile("\\$\\{([^}]+)\\}");
+        Matcher matcher = fieldPattern.matcher(expression);
+        
+        while (matcher.find()) {
+            String fieldName = matcher.group(1);
+            Object value = context.get(fieldName);
+            if (value != null) {
+                result = result.replace(matcher.group(0), value.toString());
+            }
+        }
+        
+        // Handle functions: ${randomNumber(min,max)}, ${substring(field,start,end)}
+        result = evaluateFunctions(result, context, faker);
+        
+        return result;
+    }
+}
+```
+
+## 4. Enhanced Options Schema
+
+Extend the field options to support complex configurations using JSON:
+
+```java
+@Data
+public class EnhancedFieldOptions {
+    private String baseType;           // Original generator type
+    private Object baseOptions;        // Original options
+    private FieldFormattingOptions formatting;
+    private DependencyConfig dependency;
+    
+    @Data
+    public static class FieldFormattingOptions {
+        private FixedLengthConfig fixedLength;
+        private CaseTransform caseTransform;
+        private String prefix;
+        private String suffix;
+        private ValidationRule validation;
+    }
+    
+    @Data
+    public static class FixedLengthConfig {
+        private int length;
+        private TruncatePosition truncateFrom = TruncatePosition.END;
+        private PaddingConfig padding = new PaddingConfig();
+    }
+    
+    @Data
+    public static class DependencyConfig {
+        private String expression;
+        private List<String> dependsOn;
+        private String conditionalLogic;
+    }
+}
+```
+
+## 5. Modified Data Generation Service
+
+Update the data generation logic to support dependencies and formatting:
+
+```java
+@Service
+public class EnhancedDataGenerationService extends DataGenerationService {
+    
+    @Autowired
+    private FieldFormatter fieldFormatter;
+    
+    @Override
+    protected Map<String, Object> generateRow(List<FieldDefinitionDto> schema) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        
+        // Sort fields by dependency order
+        List<FieldDefinitionDto> orderedFields = resolveDependencyOrder(schema);
+        
+        for (FieldDefinitionDto field : orderedFields) {
+            try {
+                String value = generateFieldValue(field, row);
+                row.put(field.getName(), value);
+            } catch (Exception e) {
+                log.error("Error generating field '{}': {}", field.getName(), e.getMessage());
+                row.put(field.getName(), "[ERROR]");
+            }
+        }
+        
+        return row;
+    }
+    
+    private String generateFieldValue(FieldDefinitionDto field, Map<String, Object> rowContext) {
+        EnhancedFieldOptions options = parseEnhancedOptions(field.getOptions());
+        
+        // Generate base value
+        DataTypeGenerator generator = getGenerator(options.getBaseType() != null ? 
+            options.getBaseType() : field.getDataType());
+            
+        String baseValue = generator.generate(faker, 
+            options.getBaseOptions() != null ? options.getBaseOptions().toString() : null,
+            rowContext);
+        
+        // Apply formatting
+        return fieldFormatter.applyFormatting(baseValue, options.getFormatting());
+    }
+    
+    private List<FieldDefinitionDto> resolveDependencyOrder(List<FieldDefinitionDto> schema) {
+        // Topological sort based on field dependencies
+        // Implementation would analyze dependency configs and order fields appropriately
+        return schema; // Simplified - implement proper dependency resolution
+    }
+}
+```
+
+## 6. Frontend Enhancements
+
+Update the frontend to support the new options format:
+
+```javascript
+// Enhanced field options input with JSON support
+function createAdvancedOptionsModal(fieldRow) {
+    const modal = document.createElement('div');
+    modal.className = 'options-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Advanced Field Options</h3>
+            <div class="options-tabs">
+                <button class="tab-btn active" data-tab="basic">Basic</button>
+                <button class="tab-btn" data-tab="formatting">Formatting</button>
+                <button class="tab-btn" data-tab="dependencies">Dependencies</button>
+            </div>
+            
+            <div id="basic-tab" class="tab-content active">
+                <label>Generator Options:</label>
+                <input type="text" id="basic-options" placeholder="e.g., 10-50 for range">
+            </div>
+            
+            <div id="formatting-tab" class="tab-content">
+                <label>Fixed Length:</label>
+                <input type="number" id="fixed-length" placeholder="Character count">
+                <label>Padding:</label>
+                <select id="padding-position">
+                    <option value="right">Right (default)</option>
+                    <option value="left">Left</option>
+                </select>
+                <input type="text" id="padding-char" placeholder="Pad character" maxlength="1">
+            </div>
+            
+            <div id="dependencies-tab" class="tab-content">
+                <label>Expression:</label>
+                <textarea id="dependency-expression" 
+                    placeholder="\${firstName}_\${lastName}_\${randomNumber(1000,9999)}"></textarea>
+                <small>Use \${fieldName} to reference other fields</small>
+            </div>
+            
+            <button onclick="applyAdvancedOptions()">Apply</button>
+            <button onclick="closeModal()">Cancel</button>
+        </div>
+    `;
+    
+    return modal;
+}
+```
+
+## 7. Example Usage Scenarios
+
+**Fixed Length Fields:**
+```json
+{
+  "baseType": "Name.firstName",
+  "formatting": {
+    "fixedLength": {
+      "length": 10,
+      "padding": {
+        "position": "right",
+        "character": "0"
+      }
+    }
+  }
+}
+```
+
+**Dependent Fields:**
+```json
+{
+  "baseType": "Dependent.expression",
+  "baseOptions": "${firstName}_${lastName}_${randomNumber(1000,9999)}",
+  "formatting": {
+    "caseTransform": "UPPER"
+  }
+}
+```
+
+This approach provides:
+- **Backward compatibility** with existing generators
+- **Flexible formatting** options for any field type
+- **Powerful dependency system** for related fields
+- **Extensible architecture** for future enhancements
+- **User-friendly interface** for complex configurations
+
+The system can be implemented incrementally, starting with basic formatting and gradually adding more sophisticated dependency features.​​​​​​​​​​​​​​​​
