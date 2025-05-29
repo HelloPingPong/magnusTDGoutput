@@ -1,0 +1,347 @@
+package com.example.datagenerator.expression.functions;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Pads a string on the left with a specified character
+ * Usage: padLeft(value, length, padChar)
+ */
+public class PadLeftFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "padLeft";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Pads the input value on the left to reach the specified length";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "padLeft(value, length, padChar)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2 || parameters.size() > 3) {
+            throw new IllegalArgumentException("padLeft requires 2 or 3 parameters: value, length[, padChar]");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        try {
+            int targetLength = Integer.parseInt(parameters.get(1).trim());
+            char padChar = parameters.size() == 3 ? parameters.get(2).charAt(0) : ' ';
+            
+            if (value.length() >= targetLength) {
+                return value;
+            }
+            
+            int paddingNeeded = targetLength - value.length();
+            String padding = String.valueOf(padChar).repeat(paddingNeeded);
+            
+            return padding + value;
+            
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Length parameter must be a valid integer");
+        }
+    }
+}
+
+/**
+ * Pads a string on the right with a specified character
+ * Usage: padRight(value, length, padChar)
+ */
+class PadRightFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "padRight";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Pads the input value on the right to reach the specified length";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "padRight(value, length, padChar)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2 || parameters.size() > 3) {
+            throw new IllegalArgumentException("padRight requires 2 or 3 parameters: value, length[, padChar]");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        try {
+            int targetLength = Integer.parseInt(parameters.get(1).trim());
+            char padChar = parameters.size() == 3 ? parameters.get(2).charAt(0) : ' ';
+            
+            if (value.length() >= targetLength) {
+                return value;
+            }
+            
+            int paddingNeeded = targetLength - value.length();
+            String padding = String.valueOf(padChar).repeat(paddingNeeded);
+            
+            return value + padding;
+            
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Length parameter must be a valid integer");
+        }
+    }
+}
+
+/**
+ * Formats a date/timestamp
+ * Usage: formatDate(format) or formatDate(value, format)
+ */
+class FormatDateFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "formatDate";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Formats the current timestamp or a provided date value using the specified format";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "formatDate(format) or formatDate(value, format)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 2;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 1 || parameters.size() > 2) {
+            throw new IllegalArgumentException("formatDate requires 1 or 2 parameters: [value,] format");
+        }
+        
+        try {
+            if (parameters.size() == 1) {
+                // Format current timestamp
+                String format = parameters.get(0);
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                return now.format(formatter);
+            } else {
+                // Format provided value
+                String value = parameters.get(0);
+                String format = parameters.get(1);
+                
+                // If value is a field reference, get it from context
+                if (context.hasField(value)) {
+                    value = context.getFieldValue(value);
+                }
+                
+                // Try to parse the value as a date/timestamp
+                LocalDateTime dateTime = LocalDateTime.parse(value);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                return dateTime.format(formatter);
+            }
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid date value or format: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error formatting date: " + e.getMessage());
+        }
+    }
+}
+
+/**
+ * Randomly chooses one value from a list of options
+ * Usage: randomChoice(option1, option2, option3, ...)
+ */
+class RandomChoiceFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "randomChoice";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Randomly selects one value from the provided options";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "randomChoice(option1, option2, option3, ...)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return -1; // Unlimited
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2) {
+            throw new IllegalArgumentException("randomChoice requires at least 2 options");
+        }
+        
+        // Resolve field references in parameters
+        List<String> resolvedOptions = parameters.stream()
+                .map(param -> context.hasField(param) ? context.getFieldValue(param) : param)
+                .toList();
+        
+        int randomIndex = context.getFaker().number().numberBetween(0, resolvedOptions.size());
+        return resolvedOptions.get(randomIndex);
+    }
+}
+
+/**
+ * Conditional function that returns different values based on a condition
+ * Usage: conditional(condition, valueIfTrue, valueIfFalse)
+ */
+class ConditionalFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "conditional";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Returns different values based on a condition evaluation";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "conditional(condition, valueIfTrue, valueIfFalse)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 3;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 3) {
+            throw new IllegalArgumentException("conditional requires exactly 3 parameters: condition, valueIfTrue, valueIfFalse");
+        }
+        
+        String condition = parameters.get(0);
+        String valueIfTrue = parameters.get(1);
+        String valueIfFalse = parameters.get(2);
+        
+        // Resolve field references
+        if (context.hasField(condition)) {
+            condition = context.getFieldValue(condition);
+        }
+        if (context.hasField(valueIfTrue)) {
+            valueIfTrue = context.getFieldValue(valueIfTrue);
+        }
+        if (context.hasField(valueIfFalse)) {
+            valueIfFalse = context.getFieldValue(valueIfFalse);
+        }
+        
+        // Simple condition evaluation
+        boolean conditionResult = evaluateCondition(condition, context);
+        
+        return conditionResult ? valueIfTrue : valueIfFalse;
+    }
+    
+    private boolean evaluateCondition(String condition, FunctionExecutionContext context) {
+        // Simple condition evaluation - can be enhanced
+        condition = condition.trim().toLowerCase();
+        
+        // Handle boolean literals
+        if ("true".equals(condition) || "1".equals(condition)) {
+            return true;
+        }
+        if ("false".equals(condition) || "0".equals(condition)) {
+            return false;
+        }
+        
+        // Handle row index conditions
+        if (condition.startsWith("rowindex")) {
+            try {
+                int rowIndex = context.getRowIndex();
+                if (condition.contains("even")) {
+                    return rowIndex % 2 == 0;
+                }
+                if (condition.contains("odd")) {
+                    return rowIndex % 2 == 1;
+                }
+                if (condition.contains(">")) {
+                    String[] parts = condition.split(">");
+                    int threshold = Integer.parseInt(parts[1].trim());
+                    return rowIndex > threshold;
+                }
+                if (condition.contains("<")) {
+                    String[] parts = condition.split("<");
+                    int threshold = Integer.parseInt(parts[1].trim());
+                    return rowIndex < threshold;
+                }
+            } catch (Exception e) {
+                // Fall through to default
+            }
+        }
+        
+        // Default: non-empty string is true
+        return !condition.isEmpty();
+    }
+}
