@@ -1,0 +1,405 @@
+// ===============================================
+// Integration with Enhanced Data Generation Service
+// ===============================================
+
+// Update the EnhancedDataGenerationService constructor to include ExpressionParser:
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class EnhancedDataGenerationService {
+
+    private final List<DataTypeGenerator> dataTypeGenerators;
+    private final SchemaFormattingService schemaFormattingService;
+    private final FieldFormatter fieldFormatter;
+    private final DependencyResolver dependencyResolver;
+    private final ExpressionEvaluator expressionEvaluator;
+    private final ExpressionParser expressionParser; // ADD THIS
+    private final ObjectMapper objectMapper;
+    private final Faker faker = new Faker();
+
+    // ... rest of the service remains the same
+}
+
+// ===============================================
+// Usage Examples and Test Cases
+// ===============================================
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class ExpressionParserUsageExamples {
+
+    private final ExpressionParser expressionParser;
+
+    /**
+     * Example 1: Basic expression validation
+     */
+    public void validateBasicExpression() {
+        String expression = "${firstName}_${lastName}_${randomNumber(1000,9999)}";
+        
+        ExpressionParser.ParsedExpression parsed = expressionParser.parseExpression(expression);
+        
+        System.out.println("Expression: " + expression);
+        System.out.println("Valid: " + parsed.isValid());
+        System.out.println("Field references: " + parsed.getFieldReferences());
+        System.out.println("Function calls: " + parsed.getFunctionCalls().size());
+        
+        // Output:
+        // Expression: ${firstName}_${lastName}_${randomNumber(1000,9999)}
+        // Valid: true
+        // Field references: [firstName, lastName]
+        // Function calls: 1
+    }
+
+    /**
+     * Example 2: Complex nested expression
+     */
+    public void validateComplexExpression() {
+        String expression = "padLeft(uppercase(substring(${lastName}, 0, 3)), 5, '0')";
+        
+        ExpressionParser.ParsedExpression parsed = expressionParser.parseExpression(expression);
+        
+        System.out.println("Expression: " + expression);
+        System.out.println("Valid: " + parsed.isValid());
+        System.out.println("Field references: " + parsed.getFieldReferences());
+        
+        for (ExpressionParser.FunctionCall fc : parsed.getFunctionCalls()) {
+            System.out.println("Function: " + fc.getFunctionName() + 
+                             " with " + fc.getParameterCount() + " parameters");
+        }
+        
+        if (parsed.hasWarnings()) {
+            System.out.println("Warnings: " + parsed.getWarnings());
+        }
+    }
+
+    /**
+     * Example 3: Invalid expression detection
+     */
+    public void validateInvalidExpression() {
+        String expression = "${firstName}_${randomNumber(1000)}"; // Missing parameter
+        
+        ExpressionParser.ParsedExpression parsed = expressionParser.parseExpression(expression);
+        
+        System.out.println("Expression: " + expression);
+        System.out.println("Valid: " + parsed.isValid());
+        
+        if (!parsed.isValid()) {
+            System.out.println("Errors:");
+            parsed.getErrors().forEach(error -> System.out.println("  - " + error));
+        }
+        
+        // Output:
+        // Expression: ${firstName}_${randomNumber(1000)}
+        // Valid: false
+        // Errors:
+        //   - randomNumber requires exactly 2 parameters (min, max)
+    }
+
+    /**
+     * Example 4: Expression normalization
+     */
+    public void normalizeExpression() {
+        String messyExpression = "  ${  firstName  }   _   ${   lastName   }  ";
+        String normalized = expressionParser.normalizeExpression(messyExpression);
+        
+        System.out.println("Original: '" + messyExpression + "'");
+        System.out.println("Normalized: '" + normalized + "'");
+        
+        // Output:
+        // Original: '  ${  firstName  }   _   ${   lastName   }  '
+        // Normalized: '${  firstName  } _ ${   lastName   }'
+    }
+
+    /**
+     * Example 5: Field dependency extraction
+     */
+    public void extractDependencies() {
+        String expression = "conditional(${rowIndex} > 10, uppercase(${firstName}), lowercase(${lastName}))";
+        
+        Set<String> fieldRefs = expressionParser.getFieldReferences(expression);
+        
+        System.out.println("Expression: " + expression);
+        System.out.println("Dependencies: " + fieldRefs);
+        
+        // Output:
+        // Expression: conditional(${rowIndex} > 10, uppercase(${firstName}), lowercase(${lastName}))
+        // Dependencies: [rowIndex, firstName, lastName]
+    }
+}
+
+// ===============================================
+// Enhanced Dependency Resolver Integration
+// ===============================================
+
+// Update the DependencyResolver to use ExpressionParser for better dependency extraction:
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class EnhancedDependencyResolver extends DependencyResolver {
+
+    private final ObjectMapper objectMapper;
+    private final ExpressionParser expressionParser; // ADD THIS
+
+    /**
+     * Enhanced field dependency extraction using ExpressionParser
+     */
+    @Override
+    protected Set<String> extractFieldDependencies(FieldDefinitionDto field) {
+        Set<String> dependencies = new HashSet<>();
+        
+        try {
+            EnhancedFieldOptions options = parseEnhancedFieldOptions(field.getOptions());
+            
+            // Use ExpressionParser for more accurate dependency extraction
+            if (options.getDependency() != null && options.getDependency().getExpression() != null) {
+                String expression = options.getDependency().getExpression();
+                
+                // Validate expression first
+                ExpressionParser.ParsedExpression parsed = expressionParser.parseExpression(expression);
+                
+                if (!parsed.isValid()) {
+                    log.warn("Invalid expression in field '{}': {}", 
+                            field.getName(), String.join(", ", parsed.getErrors()));
+                } else {
+                    dependencies.addAll(parsed.getFieldReferences());
+                }
+            }
+            
+            // Add explicit dependencies
+            if (options.getDependency() != null && options.getDependency().getDependsOn() != null) {
+                dependencies.addAll(options.getDependency().getDependsOn());
+            }
+            
+        } catch (Exception e) {
+            log.warn("Error extracting dependencies for field '{}': {}", field.getName(), e.getMessage());
+        }
+        
+        return dependencies;
+    }
+}
+
+// ===============================================
+// Expression Validation Service
+// ===============================================
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ExpressionValidationService {
+
+    private final ExpressionParser expressionParser;
+
+    /**
+     * Validate all expressions in a schema
+     */
+    public ValidationResult validateSchemaExpressions(List<FieldDefinitionDto> schema) {
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+        
+        for (FieldDefinitionDto field : schema) {
+            try {
+                EnhancedFieldOptions options = parseEnhancedFieldOptions(field.getOptions());
+                
+                if (options.getDependency() != null && options.getDependency().getExpression() != null) {
+                    String expression = options.getDependency().getExpression();
+                    ExpressionParser.ParsedExpression parsed = expressionParser.parseExpression(expression);
+                    
+                    if (!parsed.isValid()) {
+                        errors.add("Field '" + field.getName() + "': " + String.join(", ", parsed.getErrors()));
+                    }
+                    
+                    if (parsed.hasWarnings()) {
+                        warnings.add("Field '" + field.getName() + "': " + String.join(", ", parsed.getWarnings()));
+                    }
+                }
+                
+            } catch (Exception e) {
+                errors.add("Field '" + field.getName() + "': Error parsing options - " + e.getMessage());
+            }
+        }
+        
+        return new ValidationResult(errors.isEmpty(), errors, warnings);
+    }
+
+    /**
+     * Quick validation check for a single expression
+     */
+    public boolean isValidExpression(String expression) {
+        return expressionParser.isValidExpression(expression);
+    }
+
+    /**
+     * Get detailed validation information for an expression
+     */
+    public ExpressionParser.ParsedExpression getExpressionDetails(String expression) {
+        return expressionParser.parseExpression(expression);
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ValidationResult {
+        private final boolean valid;
+        private final List<String> errors;
+        private final List<String> warnings;
+        
+        public boolean hasWarnings() {
+            return !warnings.isEmpty();
+        }
+    }
+}
+
+// ===============================================
+// REST API Endpoint for Expression Validation
+// ===============================================
+
+@RestController
+@RequestMapping("/api/expressions")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
+public class ExpressionController {
+
+    private final ExpressionValidationService validationService;
+    private final ExpressionParser expressionParser;
+
+    /**
+     * Validate a single expression
+     */
+    @PostMapping("/validate")
+    public ResponseEntity<ExpressionValidationResponse> validateExpression(@RequestBody ExpressionValidationRequest request) {
+        try {
+            ExpressionParser.ParsedExpression parsed = expressionParser.parseExpression(request.getExpression());
+            
+            ExpressionValidationResponse response = new ExpressionValidationResponse();
+            response.setValid(parsed.isValid());
+            response.setErrors(parsed.getErrors());
+            response.setWarnings(parsed.getWarnings());
+            response.setFieldReferences(new ArrayList<>(parsed.getFieldReferences()));
+            response.setFunctionCount(parsed.getFunctionCalls().size());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            ExpressionValidationResponse response = new ExpressionValidationResponse();
+            response.setValid(false);
+            response.setErrors(List.of("Parse error: " + e.getMessage()));
+            response.setWarnings(List.of());
+            response.setFieldReferences(List.of());
+            response.setFunctionCount(0);
+            
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * Get all available functions with their documentation
+     */
+    @GetMapping("/functions")
+    public ResponseEntity<Map<String, String>> getAvailableFunctions() {
+        // This would come from the ExpressionEvaluator
+        Map<String, String> functions = Map.of(
+            "randomNumber", "randomNumber(min, max) - Generate random number between min and max",
+            "substring", "substring(value, start[, end]) - Extract substring from value",
+            "uppercase", "uppercase(value) - Convert value to uppercase",
+            "lowercase", "lowercase(value) - Convert value to lowercase",
+            "concat", "concat(value1, value2, ...) - Concatenate multiple values",
+            "conditional", "conditional(condition, valueIfTrue, valueIfFalse) - Conditional value selection"
+        );
+        
+        return ResponseEntity.ok(functions);
+    }
+
+    @Data
+    public static class ExpressionValidationRequest {
+        private String expression;
+    }
+
+    @Data
+    public static class ExpressionValidationResponse {
+        private boolean valid;
+        private List<String> errors;
+        private List<String> warnings;
+        private List<String> fieldReferences;
+        private int functionCount;
+    }
+}
+
+// ===============================================
+// Frontend Integration Example (JavaScript)
+// ===============================================
+
+/*
+// Add this to the frontend script.js for real-time expression validation
+
+async function validateExpression(expression) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/expressions/validate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ expression: expression })
+        });
+        
+        const result = await response.json();
+        
+        return {
+            valid: result.valid,
+            errors: result.errors || [],
+            warnings: result.warnings || [],
+            fieldReferences: result.fieldReferences || [],
+            functionCount: result.functionCount || 0
+        };
+    } catch (error) {
+        console.error('Error validating expression:', error);
+        return {
+            valid: false,
+            errors: ['Network error during validation'],
+            warnings: [],
+            fieldReferences: [],
+            functionCount: 0
+        };
+    }
+}
+
+// Usage in the advanced options modal
+document.getElementById('dependencyExpression').addEventListener('blur', async function() {
+    const expression = this.value.trim();
+    if (expression) {
+        const validation = await validateExpression(expression);
+        
+        // Show validation results
+        const errorDiv = document.getElementById('expressionErrors') || createErrorDiv();
+        
+        if (!validation.valid) {
+            errorDiv.innerHTML = 'Errors: ' + validation.errors.join(', ');
+            errorDiv.className = 'validation-error';
+            this.classList.add('invalid');
+        } else {
+            if (validation.warnings.length > 0) {
+                errorDiv.innerHTML = 'Warnings: ' + validation.warnings.join(', ');
+                errorDiv.className = 'validation-warning';
+            } else {
+                errorDiv.innerHTML = 'Valid expression';
+                errorDiv.className = 'validation-success';
+            }
+            this.classList.remove('invalid');
+        }
+        
+        // Show field dependencies
+        if (validation.fieldReferences.length > 0) {
+            const depsSpan = document.getElementById('fieldDependencies') || createDepsSpan();
+            depsSpan.textContent = 'Depends on: ' + validation.fieldReferences.join(', ');
+        }
+    }
+});
+
+function createErrorDiv() {
+    const div = document.createElement('div');
+    div.id = 'expressionErrors';
+    div.className = 'validation-message';
+    document.getElementById('dependencies-tab').appendChild(div);
+    return div;
+}
+*/
