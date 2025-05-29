@@ -1,0 +1,251 @@
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+/**
+ * Converts text to uppercase
+ * Usage: uppercase(value)
+ */
+public class UpperCaseFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "uppercase";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Converts the input value to uppercase";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "uppercase(value)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 1;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 1) {
+            throw new IllegalArgumentException("uppercase requires exactly 1 parameter");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return value.toUpperCase();
+    }
+}
+
+/**
+ * Converts text to lowercase
+ * Usage: lowercase(value)
+ */
+class LowerCaseFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "lowercase";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Converts the input value to lowercase";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "lowercase(value)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 1;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 1) {
+            throw new IllegalArgumentException("lowercase requires exactly 1 parameter");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return value.toLowerCase();
+    }
+}
+
+/**
+ * Replaces text within a string
+ * Usage: replace(value, search, replacement)
+ */
+class ReplaceFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "replace";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Replaces all occurrences of search text with replacement text";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "replace(value, search, replacement)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 3;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 3) {
+            throw new IllegalArgumentException("replace requires exactly 3 parameters: value, search, replacement");
+        }
+        
+        String value = parameters.get(0);
+        String search = parameters.get(1);
+        String replacement = parameters.get(2);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return value.replace(search, replacement);
+    }
+}
+
+/**
+ * Concatenates multiple values
+ * Usage: concat(value1, value2, ...)
+ */
+class ConcatFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "concat";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Concatenates multiple values into a single string";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "concat(value1, value2, ...)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return -1; // Unlimited
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2) {
+            throw new IllegalArgumentException("concat requires at least 2 parameters");
+        }
+        
+        StringBuilder result = new StringBuilder();
+        
+        for (String param : parameters) {
+            String value = param;
+            
+            // If value is a field reference, get it from context
+            if (context.hasField(value)) {
+                value = context.getFieldValue(value);
+            }
+            
+            result.append(value);
+        }
+        
+        return result.toString();
+    }
+}
+
+/**
+ * Gets the length of a string
+ * Usage: length(value)
+ */
+class LengthFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "length";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Returns the length of the input value";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "length(value)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 1;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 1) {
+            throw new IllegalArgumentException("length requires exactly 1 parameter");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return String.valueOf(value.length());
+    }
+}
