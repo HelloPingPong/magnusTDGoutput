@@ -1,0 +1,554 @@
+// ===============================================
+// File: LowerCaseFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class LowerCaseFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "lowercase";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Converts the input value to lowercase";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "lowercase(value)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 1;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 1) {
+            throw new IllegalArgumentException("lowercase requires exactly 1 parameter");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return value.toLowerCase();
+    }
+}
+
+// ===============================================
+// File: UpperCaseFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class UpperCaseFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "uppercase";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Converts the input value to uppercase";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "uppercase(value)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 1;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 1) {
+            throw new IllegalArgumentException("uppercase requires exactly 1 parameter");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return value.toUpperCase();
+    }
+}
+
+// ===============================================
+// File: ReplaceFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class ReplaceFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "replace";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Replaces all occurrences of search text with replacement text";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "replace(value, search, replacement)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 3;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 3) {
+            throw new IllegalArgumentException("replace requires exactly 3 parameters: value, search, replacement");
+        }
+        
+        String value = parameters.get(0);
+        String search = parameters.get(1);
+        String replacement = parameters.get(2);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return value.replace(search, replacement);
+    }
+}
+
+// ===============================================
+// File: ConcatFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class ConcatFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "concat";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Concatenates multiple values into a single string";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "concat(value1, value2, ...)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return -1; // Unlimited
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2) {
+            throw new IllegalArgumentException("concat requires at least 2 parameters");
+        }
+        
+        StringBuilder result = new StringBuilder();
+        
+        for (String param : parameters) {
+            String value = param;
+            
+            // If value is a field reference, get it from context
+            if (context.hasField(value)) {
+                value = context.getFieldValue(value);
+            }
+            
+            result.append(value);
+        }
+        
+        return result.toString();
+    }
+}
+
+// ===============================================
+// File: LengthFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class LengthFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "length";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Returns the length of the input value";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "length(value)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 1;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 1) {
+            throw new IllegalArgumentException("length requires exactly 1 parameter");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        return String.valueOf(value.length());
+    }
+}
+
+// ===============================================
+// File: PadRightFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class PadRightFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "padRight";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Pads the input value on the right to reach the specified length";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "padRight(value, length, padChar)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2 || parameters.size() > 3) {
+            throw new IllegalArgumentException("padRight requires 2 or 3 parameters: value, length[, padChar]");
+        }
+        
+        String value = parameters.get(0);
+        
+        // If value is a field reference, get it from context
+        if (context.hasField(value)) {
+            value = context.getFieldValue(value);
+        }
+        
+        try {
+            int targetLength = Integer.parseInt(parameters.get(1).trim());
+            char padChar = parameters.size() == 3 ? parameters.get(2).charAt(0) : ' ';
+            
+            if (value.length() >= targetLength) {
+                return value;
+            }
+            
+            int paddingNeeded = targetLength - value.length();
+            String padding = String.valueOf(padChar).repeat(paddingNeeded);
+            
+            return value + padding;
+            
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Length parameter must be a valid integer");
+        }
+    }
+}
+
+// ===============================================
+// File: FormatDateFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+public class FormatDateFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "formatDate";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Formats the current timestamp or a provided date value using the specified format";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "formatDate(format) or formatDate(value, format)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 1;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 2;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 1 || parameters.size() > 2) {
+            throw new IllegalArgumentException("formatDate requires 1 or 2 parameters: [value,] format");
+        }
+        
+        try {
+            if (parameters.size() == 1) {
+                // Format current timestamp
+                String format = parameters.get(0);
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                return now.format(formatter);
+            } else {
+                // Format provided value
+                String value = parameters.get(0);
+                String format = parameters.get(1);
+                
+                // If value is a field reference, get it from context
+                if (context.hasField(value)) {
+                    value = context.getFieldValue(value);
+                }
+                
+                // Try to parse the value as a date/timestamp
+                LocalDateTime dateTime = LocalDateTime.parse(value);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                return dateTime.format(formatter);
+            }
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid date value or format: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error formatting date: " + e.getMessage());
+        }
+    }
+}
+
+// ===============================================
+// File: RandomChoiceFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class RandomChoiceFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "randomChoice";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Randomly selects one value from the provided options";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "randomChoice(option1, option2, option3, ...)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 2;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return -1; // Unlimited
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() < 2) {
+            throw new IllegalArgumentException("randomChoice requires at least 2 options");
+        }
+        
+        // Resolve field references in parameters
+        List<String> resolvedOptions = parameters.stream()
+                .map(param -> context.hasField(param) ? context.getFieldValue(param) : param)
+                .toList();
+        
+        int randomIndex = context.getFaker().number().numberBetween(0, resolvedOptions.size());
+        return resolvedOptions.get(randomIndex);
+    }
+}
+
+// ===============================================
+// File: ConditionalFunction.java
+// ===============================================
+package com.example.datagenerator.expression.functions;
+
+import java.util.List;
+
+public class ConditionalFunction implements ExpressionFunction {
+    
+    @Override
+    public String getName() {
+        return "conditional";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Returns different values based on a condition evaluation";
+    }
+    
+    @Override
+    public String getUsage() {
+        return "conditional(condition, valueIfTrue, valueIfFalse)";
+    }
+    
+    @Override
+    public int getMinParameters() {
+        return 3;
+    }
+    
+    @Override
+    public int getMaxParameters() {
+        return 3;
+    }
+    
+    @Override
+    public String execute(List<String> parameters, FunctionExecutionContext context) throws IllegalArgumentException {
+        if (parameters.size() != 3) {
+            throw new IllegalArgumentException("conditional requires exactly 3 parameters: condition, valueIfTrue, valueIfFalse");
+        }
+        
+        String condition = parameters.get(0);
+        String valueIfTrue = parameters.get(1);
+        String valueIfFalse = parameters.get(2);
+        
+        // Resolve field references
+        if (context.hasField(condition)) {
+            condition = context.getFieldValue(condition);
+        }
+        if (context.hasField(valueIfTrue)) {
+            valueIfTrue = context.getFieldValue(valueIfTrue);
+        }
+        if (context.hasField(valueIfFalse)) {
+            valueIfFalse = context.getFieldValue(valueIfFalse);
+        }
+        
+        // Simple condition evaluation
+        boolean conditionResult = evaluateCondition(condition, context);
+        
+        return conditionResult ? valueIfTrue : valueIfFalse;
+    }
+    
+    private boolean evaluateCondition(String condition, FunctionExecutionContext context) {
+        // Simple condition evaluation - can be enhanced
+        condition = condition.trim().toLowerCase();
+        
+        // Handle boolean literals
+        if ("true".equals(condition) || "1".equals(condition)) {
+            return true;
+        }
+        if ("false".equals(condition) || "0".equals(condition)) {
+            return false;
+        }
+        
+        // Handle row index conditions
+        if (condition.startsWith("rowindex")) {
+            try {
+                int rowIndex = context.getRowIndex();
+                if (condition.contains("even")) {
+                    return rowIndex % 2 == 0;
+                }
+                if (condition.contains("odd")) {
+                    return rowIndex % 2 == 1;
+                }
+                if (condition.contains(">")) {
+                    String[] parts = condition.split(">");
+                    int threshold = Integer.parseInt(parts[1].trim());
+                    return rowIndex > threshold;
+                }
+                if (condition.contains("<")) {
+                    String[] parts = condition.split("<");
+                    int threshold = Integer.parseInt(parts[1].trim());
+                    return rowIndex < threshold;
+                }
+            } catch (Exception e) {
+                // Fall through to default
+            }
+        }
+        
+        // Default: non-empty string is true
+        return !condition.isEmpty();
+    }
+}
